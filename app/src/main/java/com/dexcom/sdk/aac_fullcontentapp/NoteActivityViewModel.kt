@@ -2,6 +2,7 @@ package com.dexcom.sdk.aac_fullcontentapp
 
 import android.app.Application
 import android.database.Cursor
+import android.net.Uri
 import android.os.Bundle
 import android.provider.BaseColumns
 import androidx.lifecycle.AndroidViewModel
@@ -26,7 +27,9 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
     var courseIndex  = MutableLiveData<Int>()
     var noteTitle = MutableLiveData<String>()
     var noteText = MutableLiveData<String>()
-
+    //ContentProvider parameters
+    var liveCoursesCursor = MutableLiveData<Cursor>()
+    val uri = Uri.parse("content://com.dexcom.sdk.aac_fullcontentapp")
 
     companion object Constants {
         const val ORIGINAL_NOTE_COURSE_ID =

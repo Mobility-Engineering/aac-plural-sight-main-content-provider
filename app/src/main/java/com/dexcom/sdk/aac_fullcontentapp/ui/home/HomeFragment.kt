@@ -23,6 +23,7 @@ import com.dexcom.sdk.aac_fullcontentapp.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
+
     // This property is only valid between onCreateView and
     // onDestroyView.
     private var noteListSize = 1
@@ -56,21 +57,17 @@ class HomeFragment : Fragment() {
 
     override fun onResume() {
 
-initializeDisplayContent()
+        initializeDisplayContent()
 
         if (DataManager.instance?.notes?.size!! > noteListSize) {
             noteListSize++
             noteRecyclerAdapter?.notifyItemInserted(noteListSize - 1)
-        }
-        else
+        } else
             DataManager!!.instance?.let { noteRecyclerAdapter?.notifyItemChanged(it.currentlyDisplayedNote) }
 
         //noteRecyclerAdapter?.notifyDataSetChanged()
         super.onResume()
     }
-
-
-
 
 
     private fun initializeDisplayContent() {
@@ -85,19 +82,19 @@ initializeDisplayContent()
         val notesLayoutManager = LinearLayoutManager(context)
         recyclerNotes.layoutManager = notesLayoutManager
         val notes = DataManager.instance?.notes
-        noteRecyclerAdapter = notes?.let{ NoteRecyclerAdapter(context, it) }
+        noteRecyclerAdapter = notes?.let { NoteRecyclerAdapter(context, it) }
         recyclerNotes.adapter = noteRecyclerAdapter
     }
+
     private fun displayCourses() {
         val context = activity as Context
-            val recyclerCourses = binding.listItems
+        val recyclerCourses = binding.listItems
         val courseLayoutManager = GridLayoutManager(context, 2)
         recyclerCourses.layoutManager = courseLayoutManager
         val courses = DataManager.instance?.courses
-        courseRecyclerAdapter = courses?.let{CourseRecyclerAdapter(context, it) }
+        courseRecyclerAdapter = courses?.let { CourseRecyclerAdapter(context, it) }
         recyclerCourses.adapter = courseRecyclerAdapter
     }
-
 
 
     override fun onDestroyView() {

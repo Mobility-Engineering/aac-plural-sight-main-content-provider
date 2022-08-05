@@ -10,10 +10,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AAC_FullContentApp">
         <provider
-            android:name=".NoteKeeperContentProvider"
-            android:authorities="com.dexcom.sdk.aac_fullcontentapp.provider"
+            android:name=".provider.NoteKeeperContentProvider"
+            android:authorities="com.dexcom.sdk.aac_fullcontentapp.provider.provider"
             android:enabled="true"
-            android:exported="true"/>
+            android:exported="true" />
 
 
         <activity

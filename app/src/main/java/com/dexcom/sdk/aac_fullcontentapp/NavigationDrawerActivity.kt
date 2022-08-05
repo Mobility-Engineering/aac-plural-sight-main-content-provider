@@ -30,10 +30,10 @@ class NavigationDrawerActivity : AppCompatActivity() {
         setSupportActionBar(binding.appBarNavigationDrawer.toolbar)
 
 
-                /*view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
-                */
+        /*view ->
+    Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+        .setAction("Action", null).show()
+        */
 
         val drawerLayout: DrawerLayout = binding.drawerLayout
         val navView: NavigationView = binding.navView
@@ -61,7 +61,7 @@ class NavigationDrawerActivity : AppCompatActivity() {
         binding.appBarNavigationDrawer.fab.setOnClickListener {
 
             //navController?.navigate(R.id.action_nav_home_to_nav_gallery)
-            intent = Intent (this, NoteActivity::class.java)
+            intent = Intent(this, NoteActivity::class.java)
             startActivity(intent)
         }
 

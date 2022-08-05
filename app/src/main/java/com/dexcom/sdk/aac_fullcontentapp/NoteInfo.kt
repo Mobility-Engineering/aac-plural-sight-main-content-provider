@@ -5,7 +5,8 @@ import android.os.Parcelable
 import com.dexcom.sdk.aac_fullcontentapp.CourseInfo
 import com.dexcom.sdk.aac_fullcontentapp.NoteInfo
 
-class NoteInfo(var id: Int, var course: CourseInfo?, var title: String?, var text: String?):Parcelable {
+class NoteInfo(var id: Int, var course: CourseInfo?, var title: String?, var text: String?) :
+    Parcelable {
     private val compareKey: String
         private get() = course?.courseId + "|" + title + "|" + text
 

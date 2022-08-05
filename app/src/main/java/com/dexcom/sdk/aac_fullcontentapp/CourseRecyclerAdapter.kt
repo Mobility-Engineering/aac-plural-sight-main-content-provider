@@ -22,14 +22,14 @@ class CourseRecyclerAdapter(private var context: Context, private var courses: L
         layoutInflater = LayoutInflater.from(context)
     }
 
-     inner class ViewHolder : RecyclerView.ViewHolder {
+    inner class ViewHolder : RecyclerView.ViewHolder {
 
         var textTitle: TextView?
         var textCourse: TextView?
 
         constructor(itemView: View) : super(itemView) {
-          textCourse = itemView.findViewById<TextView>(R.id.text_course)
-          textTitle = itemView.findViewById<TextView>(R.id.text_title)
+            textCourse = itemView.findViewById<TextView>(R.id.text_course)
+            textTitle = itemView.findViewById<TextView>(R.id.text_title)
             itemView.setOnClickListener(View.OnClickListener { view ->
                 run {
 
@@ -38,27 +38,33 @@ class CourseRecyclerAdapter(private var context: Context, private var courses: L
                     //intent.putExtra(NOTE_POSITION, adapterPosition)
                     //context.startActivity(intent)
 
-                    Snackbar.make(view, courses.get(getAdapterPosition()).title, Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(
+                        view,
+                        courses.get(getAdapterPosition()).title,
+                        Snackbar.LENGTH_LONG
+                    ).show()
                 }
             })
         }
     }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
 
         val view = LayoutInflater.from(parent.context)
-        layoutInflater  =LayoutInflater.from(parent.context)
+        layoutInflater = LayoutInflater.from(parent.context)
         return ViewHolder(layoutInflater.inflate(R.layout.item_course_list, parent, false))
     }
 
-    override fun onBindViewHolder(holder:ViewHolder, position:Int){
-    val course = courses.get(position)
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val course = courses.get(position)
         holder.textTitle?.setText(course.title)
     }
 
-    override fun getItemCount():Int{
-    return courses.size
+    override fun getItemCount(): Int {
+        return courses.size
     }
-    companion object{
+
+    companion object {
         const val NOTE_POSITION = "NOTE_POSITION"
     }
-    }
+}

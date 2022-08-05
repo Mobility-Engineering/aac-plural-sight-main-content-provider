@@ -19,6 +19,7 @@ import androidx.loader.app.LoaderManager
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityMainBinding
+import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Courses
 import java.lang.AssertionError
 
 class NoteActivity : AppCompatActivity() {
@@ -51,7 +52,6 @@ class NoteActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
-
         viewModel = ViewModelProvider(this).get(NoteActivityViewModel::class.java)
 
 
@@ -78,9 +78,8 @@ class NoteActivity : AppCompatActivity() {
         //ArrayAdapter(this, android.R.layout.simple_spinner_item, courses)
         adapterCourses.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item)
         spinnerCourses.adapter = adapterCourses
-
-        //loadCourseData()
         viewModel.loadCourseData()
+
         if (viewModel.isNewlyCreated && savedInstanceState !== null) { //being equal to null implies that the activity was created for the first time, when that is not the case simply
             //restore viewModel state from Bundle
             //This is an overkill as when it is destroyed onConfigurationChanges viewModel will already hold the used value
@@ -100,14 +99,12 @@ class NoteActivity : AppCompatActivity() {
             viewModel.loadNoteData() //will load data using LoaderManager class as this activitiy will implement LoaderCallbacks<Cursor>
             //supportLoaderManager
             //loaderManager
-
         }
 
         saveOriginalNoteValues() //Store backup of original noteInfo values used onCancel()
 
 
     }
-
 
 
     private fun loadCourseData() {

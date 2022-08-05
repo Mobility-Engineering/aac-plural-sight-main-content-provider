@@ -1,14 +1,33 @@
-package com.dexcom.sdk.aac_fullcontentapp
+package com.dexcom.sdk.aac_fullcontentapp.provider
 
 import android.content.ContentProvider
 import android.content.ContentValues
+import android.content.UriMatcher
 import android.database.Cursor
 import android.net.Uri
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
+
 class NoteKeeperContentProvider : ContentProvider() {
 
-    var dbOpenHelper:NoteKeeperOpenHelper? = null
+    private val COURSES = 0
+    private val NOTES = 1
+    var dbOpenHelper: NoteKeeperOpenHelper? = null
+    val uriMatcher = UriMatcher(UriMatcher.NO_MATCH)
+
+    init {
+        uriMatcher.addURI(
+            NoteKeeperProviderContract.AUTHORITY,
+            NoteKeeperProviderContract.Courses.PATH,
+            COURSES
+        )
+        uriMatcher.addURI(
+            NoteKeeperProviderContract.AUTHORITY,
+            NoteKeeperProviderContract.Notes.PATH,
+            COURSES
+        )
+    }
+
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int {
         TODO("Implement this to handle requests to delete one or more rows")
     }
@@ -32,11 +51,37 @@ class NoteKeeperContentProvider : ContentProvider() {
 
 
     override fun query(
+
         uri: Uri, projection: Array<String>?, selection: String?,
         selectionArgs: Array<String>?, sortOrder: String?
     ): Cursor? {
+        val uriMatch = uriMatcher.match(uri)
         val db = dbOpenHelper?.readableDatabase
-        var cursor = db?.query(CourseInfoEntry.TABLE_NAME, projection, selection, selectionArgs, null, null, sortOrder)
+        var cursor: Cursor? = null
+        when (uriMatch) {
+            COURSES -> {
+                cursor = db?.query(
+                    CourseInfoEntry.TABLE_NAME,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    sortOrder
+                )
+            }
+            NOTES -> {
+                cursor = db?.query(
+                    NoteInfoEntry.TABLE_NAME,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    sortOrder
+                )
+            }
+        }
         return cursor
     }
 

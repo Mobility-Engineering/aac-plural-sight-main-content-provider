@@ -35,16 +35,16 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun registerCameraActivity() {
-            launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
-                    result ->
-                if (result.resultCode == RESULT_OK ) {
+        launcher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == RESULT_OK) {
                     val intent: Intent? = result.data
                     val photo = intent?.extras?.get("data") as Bitmap?
                     bitmap = photo
                     showPhoto()
                 }
             }
-        }
+    }
 
     private fun showPhoto() {
 

@@ -1,22 +1,17 @@
 package com.dexcom.sdk.aac_fullcontentapp
 
 import android.app.Application
-import android.content.ContentProviderClient
-import android.content.ContentResolver
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
 import android.provider.BaseColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
-import com.dexcom.sdk.aac_fullcontentapp.NoteKeeperContentProvider
-import kotlinx.coroutines.Dispatchers
+import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperContentProvider
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class NoteActivityViewModel(application: Application) : AndroidViewModel(application) {
     var originalNoteText: String? = null
@@ -41,7 +36,7 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
         CourseInfoEntry.COLUMN_COURSE_ID,
         BaseColumns._ID
     )
-    val uri = Uri.parse("content://com.dexcom.sdk.aac_fullcontentapp.provider")
+    val uri = Uri.parse("content://com.dexcom.sdk.aac_fullcontentapp.provider.provider")
 
     companion object Constants {
         const val ORIGINAL_NOTE_COURSE_ID =
@@ -66,15 +61,17 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
     }
 
 
-    fun loadCourseData(){
+    fun loadCourseData() {
 
         viewModelScope.launch {
 
-            loadCourseContent()}
+            loadCourseContent()
+        }
     }
 
     private suspend fun loadCourseContent() {
-        providerCoursesCursor.value = contentResolver.acquireContentProviderClient(uri)?.query(uri, courseColumns, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
+        providerCoursesCursor.value = contentResolver.acquireContentProviderClient(uri)
+            ?.query(uri, courseColumns, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
         //providerCoursesCursor.value  = noteKeeperProvider.query(uri, courseColumns, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
         coursesCursor = providerCoursesCursor.value
     }

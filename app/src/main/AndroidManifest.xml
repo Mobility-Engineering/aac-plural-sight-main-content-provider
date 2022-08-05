@@ -10,10 +10,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AAC_FullContentApp">
         <provider
-            android:name=".provider.NoteKeeperProvider"
+            android:name=".NoteKeeperContentProvider"
             android:authorities="com.dexcom.sdk.aac_fullcontentapp.provider"
             android:enabled="true"
-            android:exported="true"></provider>
+            android:exported="true"/>
+
 
         <activity
             android:name=".NavigationDrawerActivity"
@@ -31,7 +32,7 @@
             android:exported="false" />
         <activity
             android:name=".NoteListActivity"
-            android:exported="true"></activity>
+            android:exported="true" />
         <activity
             android:name=".NoteActivity"
             android:exported="true" />

@@ -21,7 +21,7 @@ import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityMainBinding
 import java.lang.AssertionError
 
-class NoteActivity:AppCompatActivity(){
+class NoteActivity : AppCompatActivity() {
 
 
     private var noteCursor: Cursor? = null
@@ -55,25 +55,32 @@ class NoteActivity:AppCompatActivity(){
         viewModel = ViewModelProvider(this).get(NoteActivityViewModel::class.java)
 
 
-        val viewArray:IntArray? = IntArray(1){i -> android.R.id.text1}
+        val viewArray: IntArray? = IntArray(1) { i -> android.R.id.text1 }
         binding.spinnerCourses.also { spinnerCourses = it }
         val courses: List<CourseInfo> = DataManager.instance!!.courses
 
 
-        viewModel.noteText.observe(this, {noteText -> textNoteText.setText(noteText)})
-        viewModel.noteTitle.observe(this, {noteTitle -> textNoteTitle.setText(noteTitle)})
-        viewModel.courseIndex.observe(this,{courseIndex -> spinnerCourses.setSelection(courseIndex)})
-
-        adapterCourses= SimpleCursorAdapter(
+        viewModel.noteText.observe(this, { noteText -> textNoteText.setText(noteText) })
+        viewModel.noteTitle.observe(this, { noteTitle -> textNoteTitle.setText(noteTitle) })
+        viewModel.courseIndex.observe(this,
+            { courseIndex -> spinnerCourses.setSelection(courseIndex) })
+        viewModel.providerCoursesCursor.observe(
             this,
-            android.R.layout.simple_spinner_item, null, arrayOf(CourseInfoEntry.COLUMN_COURSE_TITLE),
+            { cursor -> adapterCourses.changeCursor(cursor) })
+        adapterCourses = SimpleCursorAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            null,
+            arrayOf(CourseInfoEntry.COLUMN_COURSE_TITLE),
             viewArray,
             0
         ) //ArrayAdapter<CourseInfo> =
         //ArrayAdapter(this, android.R.layout.simple_spinner_item, courses)
         adapterCourses.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item)
         spinnerCourses.adapter = adapterCourses
-        loadCourseData()
+
+        //loadCourseData()
+        viewModel.loadCourseData()
         if (viewModel.isNewlyCreated && savedInstanceState !== null) { //being equal to null implies that the activity was created for the first time, when that is not the case simply
             //restore viewModel state from Bundle
             //This is an overkill as when it is destroyed onConfigurationChanges viewModel will already hold the used value
@@ -87,24 +94,40 @@ class NoteActivity:AppCompatActivity(){
 
         readDisplayStates() //get noteInfo in order to populate the Views
         if (!isNewNote) {
+
             //loadNoteData()
+
             viewModel.loadNoteData() //will load data using LoaderManager class as this activitiy will implement LoaderCallbacks<Cursor>
             //supportLoaderManager
             //loaderManager
 
         }
 
-            saveOriginalNoteValues() //Store backup of original noteInfo values used onCancel()
+        saveOriginalNoteValues() //Store backup of original noteInfo values used onCancel()
 
 
     }
+
+
 
     private fun loadCourseData() {
         //Loads the Course Titles on Spinner from Database
         //It is needed by viewModel.loadNoteData()
         val db = dbOpenHelper.getReadableDatabase()
-        val courseColumns = arrayOf( CourseInfoEntry.COLUMN_COURSE_ID, CourseInfoEntry.COLUMN_COURSE_TITLE, BaseColumns._ID)
-        val cursor = db.query(CourseInfoEntry.TABLE_NAME, courseColumns, null, null, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
+        val courseColumns = arrayOf(
+            CourseInfoEntry.COLUMN_COURSE_ID,
+            CourseInfoEntry.COLUMN_COURSE_TITLE,
+            BaseColumns._ID
+        )
+        val cursor = db.query(
+            CourseInfoEntry.TABLE_NAME,
+            courseColumns,
+            null,
+            null,
+            null,
+            null,
+            CourseInfoEntry.COLUMN_COURSE_TITLE
+        )
         adapterCourses.changeCursor(cursor)
         viewModel.coursesCursor = cursor
     }
@@ -167,11 +190,9 @@ class NoteActivity:AppCompatActivity(){
         val noteText = noteCursor?.getString(noteTextPos)
 
 
-
-
         //This time, course is obtained from the corresponding id that was read for this note from the database
         // val courses: List<CourseInfo> = DataManager.instance!!.courses
-           //val course = courseId?.let { DataManager.instance?.getCourse(it) }
+        //val course = courseId?.let { DataManager.instance?.getCourse(it) }
 
         // .. and its index obtained with respect Data binding List of RecyclerView using it
         //val courseIndex = courses.indexOf(noteInfo?.course)
@@ -199,9 +220,9 @@ class NoteActivity:AppCompatActivity(){
         var courseRowIndex = 0
         var isFound = false
         var more = cursor.moveToFirst()
-        while (more){
+        while (more) {
             val cursorCourseId = cursor.getString(currentIdPos)
-            courseId?.let {if (it.equals(cursorCourseId))isFound = true }
+            courseId?.let { if (it.equals(cursorCourseId)) isFound = true }
 
             if (isFound)
                 break
@@ -209,7 +230,7 @@ class NoteActivity:AppCompatActivity(){
                 courseRowIndex++
             more = cursor.moveToNext()
         }
-            return courseRowIndex
+        return courseRowIndex
     }
 
 
@@ -227,10 +248,11 @@ class NoteActivity:AppCompatActivity(){
         } else
             saveNote()
     }
-    private fun deleteNodeFromDatabase(){
+
+    private fun deleteNodeFromDatabase() {
         val selection = BaseColumns._ID + " =?"
         dbOpenHelper
-        val  selectionArgs = arrayOf(id.toString())
+        val selectionArgs = arrayOf(id.toString())
         val db = dbOpenHelper.writableDatabase
         db.delete(NoteInfoEntry.TABLE_NAME, selection, selectionArgs)
 
@@ -245,6 +267,7 @@ class NoteActivity:AppCompatActivity(){
         db.delete(NoteInfoEntry.TABLE_NAME, selection, selectionArgs)
         */
     }
+
     private fun storePreviousNoteValues() {
         //Save the actual data that lays behind courtains nbut keep showing new values on display
         //as it will update them back from Spinner and EditText when saveNote()
@@ -269,11 +292,11 @@ class NoteActivity:AppCompatActivity(){
         saveNoteToDatabase(courseId, noteTitle, noteText)
     }
 
-    private fun selectedCourseId(): String{
+    private fun selectedCourseId(): String {
         val selectedPosition = spinnerCourses.selectedItemPosition
         val cursor = adapterCourses.cursor
         cursor.moveToPosition(selectedPosition) //Cursor does not need to know about the values themselves but as the selectedItemPosition and its associated
-                                                //value on the cursor suffices
+        //value on the cursor suffices
         val courseIdPos = cursor.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_ID)
         return cursor.getString(courseIdPos)
     }
@@ -283,30 +306,30 @@ class NoteActivity:AppCompatActivity(){
         viewModel.isNewlyCreated = false
     }
 
-    private fun saveNoteToDatabase(courseId: String?, noteTitle: String?, noteText:String?){
+    private fun saveNoteToDatabase(courseId: String?, noteTitle: String?, noteText: String?) {
 
-            val db = dbOpenHelper.writableDatabase
+        val db = dbOpenHelper.writableDatabase
 
-            /*
-            val courseId = "android_intents"
-            val titleStart = "%Delegating%"
-            */
-            /*
-            val selection =
-                "${NoteInfoEntry.COLUMN_COURSE_ID} = ? AND ${NoteInfoEntry.COLUMN_NOTE_TITLE} LIKE ?"
-            val selectionArgs = arrayOf(courseId, titleStart)
-            */
+        /*
+        val courseId = "android_intents"
+        val titleStart = "%Delegating%"
+        */
+        /*
+        val selection =
+            "${NoteInfoEntry.COLUMN_COURSE_ID} = ? AND ${NoteInfoEntry.COLUMN_NOTE_TITLE} LIKE ?"
+        val selectionArgs = arrayOf(courseId, titleStart)
+        */
 
-            val selection = "${BaseColumns._ID} = ?"
-            val selectionArgs = arrayOf(Integer.toString(id))
+        val selection = "${BaseColumns._ID} = ?"
+        val selectionArgs = arrayOf(Integer.toString(id))
 
 
-            val values = ContentValues()
-            values.put(NoteInfoEntry.COLUMN_NOTE_TITLE,noteTitle)
-                    values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, noteText)
-                    values.put(NoteInfoEntry.COLUMN_COURSE_ID, courseId)
-            db.update(NoteInfoEntry.TABLE_NAME, values, selection, selectionArgs)
-        }
+        val values = ContentValues()
+        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE, noteTitle)
+        values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, noteText)
+        values.put(NoteInfoEntry.COLUMN_COURSE_ID, courseId)
+        db.update(NoteInfoEntry.TABLE_NAME, values, selection, selectionArgs)
+    }
 
     private fun readDisplayStates() {
         val intent = getIntent()
@@ -345,7 +368,7 @@ class NoteActivity:AppCompatActivity(){
         noteInfo = dm?.notes?.get(notePosition)
         */
         val values = ContentValues()
-        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE,"")
+        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE, "")
         values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, "")
         values.put(NoteInfoEntry.COLUMN_COURSE_ID, "")
         val db = dbOpenHelper.writableDatabase

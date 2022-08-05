@@ -1,4 +1,4 @@
-package com.dexcom.sdk.aac_fullcontentapp.provider
+package com.dexcom.sdk.aac_fullcontentapp
 
 import android.content.ContentProvider
 import android.content.ContentValues
@@ -6,9 +6,9 @@ import android.database.Cursor
 import android.net.Uri
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
-class NoteKeeperProvider : ContentProvider() {
+class NoteKeeperContentProvider : ContentProvider() {
 
-    var dbOpenHelper:NoteKeeperOpenHelper? =  null
+    var dbOpenHelper:NoteKeeperOpenHelper? = null
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int {
         TODO("Implement this to handle requests to delete one or more rows")
     }
@@ -25,7 +25,9 @@ class NoteKeeperProvider : ContentProvider() {
     }
 
     override fun onCreate(): Boolean {
-        return false
+        dbOpenHelper = NoteKeeperOpenHelper(context)
+        //context for Content provider
+        return true
     }
 
 

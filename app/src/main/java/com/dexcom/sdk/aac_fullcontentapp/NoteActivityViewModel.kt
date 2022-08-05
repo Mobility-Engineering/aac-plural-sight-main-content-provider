@@ -1,6 +1,8 @@
 package com.dexcom.sdk.aac_fullcontentapp
 
 import android.app.Application
+import android.content.ContentProviderClient
+import android.content.ContentResolver
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
@@ -9,8 +11,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract
+import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
+import com.dexcom.sdk.aac_fullcontentapp.NoteKeeperContentProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,14 +25,23 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
     var noteId: Int = 0
     var isNewlyCreated: Boolean = true
     var dbOpenHelper = NoteKeeperOpenHelper(application.baseContext)
-    lateinit var coursesCursor: Cursor
+    var coursesCursor: Cursor? = null
 
-    var courseIndex  = MutableLiveData<Int>()
+    var courseIndex = MutableLiveData<Int>()
     var noteTitle = MutableLiveData<String>()
     var noteText = MutableLiveData<String>()
+
     //ContentProvider parameters
-    var liveCoursesCursor = MutableLiveData<Cursor>()
-    val uri = Uri.parse("content://com.dexcom.sdk.aac_fullcontentapp")
+
+    var noteKeeperProvider = NoteKeeperContentProvider()
+    val contentResolver = application.applicationContext.contentResolver
+    var providerCoursesCursor = MutableLiveData<Cursor>()
+    val courseColumns = arrayOf(
+        CourseInfoEntry.COLUMN_COURSE_TITLE,
+        CourseInfoEntry.COLUMN_COURSE_ID,
+        BaseColumns._ID
+    )
+    val uri = Uri.parse("content://com.dexcom.sdk.aac_fullcontentapp.provider")
 
     companion object Constants {
         const val ORIGINAL_NOTE_COURSE_ID =
@@ -53,6 +65,20 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
         originalNoteText = inState.getString(ORIGINAL_NOTE_COURSE_TEXT)
     }
 
+
+    fun loadCourseData(){
+
+        viewModelScope.launch {
+
+            loadCourseContent()}
+    }
+
+    private suspend fun loadCourseContent() {
+        providerCoursesCursor.value = contentResolver.acquireContentProviderClient(uri)?.query(uri, courseColumns, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
+        //providerCoursesCursor.value  = noteKeeperProvider.query(uri, courseColumns, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
+        coursesCursor = providerCoursesCursor.value
+    }
+
     fun loadNoteData() {
         viewModelScope.launch { loadNoteDataEquinox() }
     }
@@ -60,57 +86,61 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
 
     private suspend fun loadNoteDataEquinox() {
 
-            val db = dbOpenHelper.getReadableDatabase()
+        val db = dbOpenHelper.getReadableDatabase()
 
-            /*
-        val courseId = "android_intents"
-        val titleStart = "%Delegating%"
-        */
-            /*
-        val selection =
-            "${NoteInfoEntry.COLUMN_COURSE_ID} = ? AND ${NoteInfoEntry.COLUMN_NOTE_TITLE} LIKE ?"
-        val selectionArgs = arrayOf(courseId, titleStart)
-        */
+        /*
+    val courseId = "android_intents"
+    val titleStart = "%Delegating%"
+    */
+        /*
+    val selection =
+        "${NoteInfoEntry.COLUMN_COURSE_ID} = ? AND ${NoteInfoEntry.COLUMN_NOTE_TITLE} LIKE ?"
+    val selectionArgs = arrayOf(courseId, titleStart)
+    */
 
-            val selection = "${BaseColumns._ID} = ?"
-            val selectionArgs = arrayOf(Integer.toString(noteId))
+        val selection = "${BaseColumns._ID} = ?"
+        val selectionArgs = arrayOf(Integer.toString(noteId))
 
 
-            val noteColumns = arrayOf(
-                NoteKeeperDatabaseContract.NoteInfoEntry.COLUMN_NOTE_TITLE,
-                NoteKeeperDatabaseContract.NoteInfoEntry.COLUMN_NOTE_TEXT,
-                NoteKeeperDatabaseContract.NoteInfoEntry.COLUMN_COURSE_ID
-            )
+        val noteColumns = arrayOf(
+            NoteInfoEntry.COLUMN_NOTE_TITLE,
+            NoteInfoEntry.COLUMN_NOTE_TEXT,
+            NoteInfoEntry.COLUMN_COURSE_ID
+        )
 
-            val noteCursor = db.query(
-                NoteKeeperDatabaseContract.NoteInfoEntry.TABLE_NAME,
-                noteColumns,
-                selection,
-                selectionArgs,
-                null,
-                null,
-                null
-            )
+        val noteCursor = db.query(
+            NoteInfoEntry.TABLE_NAME,
+            noteColumns,
+            selection,
+            selectionArgs,
+            null,
+            null,
+            null
+        )
 
-            val courseIdPos =
-                noteCursor?.getColumnIndex(NoteKeeperDatabaseContract.NoteInfoEntry.COLUMN_COURSE_ID)!!
-            val noteTitlePos =
-                noteCursor?.getColumnIndex(NoteKeeperDatabaseContract.NoteInfoEntry.COLUMN_NOTE_TITLE)!!
-            val noteTextPos =
-                noteCursor?.getColumnIndex(NoteKeeperDatabaseContract.NoteInfoEntry.COLUMN_NOTE_TEXT)!!
+        val courseIdPos =
+            noteCursor?.getColumnIndex(NoteInfoEntry.COLUMN_COURSE_ID)!!
+        val noteTitlePos =
+            noteCursor?.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TITLE)!!
+        val noteTextPos =
+            noteCursor?.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TEXT)!!
 
-            //When a cursor is returned its position before the first row in the result to move specifically to that row
-            noteCursor!!.moveToNext()
+        //When a cursor is returned its position before the first row in the result to move specifically to that row
+        noteCursor!!.moveToNext()
 
-            displayNote(noteCursor, courseIdPos, noteTitlePos, noteTextPos)
+        displayNote(noteCursor, courseIdPos, noteTitlePos, noteTextPos)
 
     }
-    private fun displayNote(noteCursor: Cursor, courseIdPos: Int, noteTitlePos: Int, noteTextPos: Int) {
+
+    private fun displayNote(
+        noteCursor: Cursor,
+        courseIdPos: Int,
+        noteTitlePos: Int,
+        noteTextPos: Int
+    ) {
         val courseId = noteCursor.getString(courseIdPos)
         noteTitle.value = noteCursor.getString(noteTitlePos)
         noteText.value = noteCursor.getString(noteTextPos)
-
-
 
 
         //This time, course is obtained from the corresponding id that was read for this note from the database
@@ -134,14 +164,15 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun getIndexOfCourseId(courseId: String?): Int {
-        val cursor = coursesCursor
-        val currentIdPos = cursor?.getColumnIndex(NoteKeeperDatabaseContract.CourseInfoEntry.COLUMN_COURSE_ID)
+        val cursor = providerCoursesCursor.value
+        val currentIdPos =
+            cursor!!.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_ID)
         var courseRowIndex = 0
         var isFound = false
-        var more = cursor.moveToFirst()
-        while (more){
+        var more = cursor?.moveToFirst()
+        while (more) {
             val cursorCourseId = cursor.getString(currentIdPos)
-            courseId?.let {if (it.equals(cursorCourseId))isFound = true }
+            courseId?.let { if (it.equals(cursorCourseId)) isFound = true }
 
             if (isFound)
                 break

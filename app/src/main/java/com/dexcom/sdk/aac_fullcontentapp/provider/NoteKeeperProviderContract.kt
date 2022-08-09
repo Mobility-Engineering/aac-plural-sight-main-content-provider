@@ -5,8 +5,8 @@ import android.provider.BaseColumns
 
 object NoteKeeperProviderContract {
     // private constructor() {
-    val AUTHORITY = "com.dexcom.sdk.aac_fullcontentapp"
-    val AUTHORITY_URI = Uri.parse("{content: //$AUTHORITY")
+    val AUTHORITY = "com.dexcom.sdk.aac_fullcontentapp.provider.provider"
+    val AUTHORITY_URI = Uri.parse("{content://$AUTHORITY")
 
     interface CoursesIdColumns {
         val COLUMN_COURSE_ID: String
@@ -14,7 +14,7 @@ object NoteKeeperProviderContract {
     }
 
     interface CoursesColumns {
-        val COURSE_TITLE: String
+        val COLUMN_COURSE_TITLE: String
             get() = "course_title"
     }
 
@@ -31,7 +31,7 @@ object NoteKeeperProviderContract {
         val CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, PATH)
     }
 
-    object Notes : BaseColumns, NotesColumns, CoursesIdColumns {
+    object Notes : BaseColumns, NotesColumns, CoursesIdColumns{
         val PATH = "notes"
         val CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, PATH)
     }

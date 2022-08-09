@@ -3,11 +3,9 @@ package com.dexcom.sdk.aac_fullcontentapp
 import android.content.ContentValues
 import android.content.Intent
 import android.database.Cursor
-import android.os.AsyncTask
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.BaseColumns
-import android.provider.ContactsContract
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
@@ -15,12 +13,9 @@ import android.widget.SimpleCursorAdapter
 import android.widget.Spinner
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
-import androidx.loader.app.LoaderManager
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityMainBinding
-import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Courses
-import java.lang.AssertionError
 
 class NoteActivity : AppCompatActivity() {
 
@@ -93,10 +88,8 @@ class NoteActivity : AppCompatActivity() {
 
         readDisplayStates() //get noteInfo in order to populate the Views
         if (!isNewNote) {
-
             //loadNoteData()
-
-            viewModel.loadNoteData() //will load data using LoaderManager class as this activitiy will implement LoaderCallbacks<Cursor>
+            viewModel.loadNoteData()
             //supportLoaderManager
             //loaderManager
         }

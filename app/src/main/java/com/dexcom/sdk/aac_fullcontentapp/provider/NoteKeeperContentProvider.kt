@@ -7,11 +7,13 @@ import android.database.Cursor
 import android.net.Uri
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
+import kotlinx.coroutines.selects.select
 
 class NoteKeeperContentProvider : ContentProvider() {
 
     private val COURSES = 0
     private val NOTES = 1
+    private val NOTES_EXPANDED = 2
     var dbOpenHelper: NoteKeeperOpenHelper? = null
     val uriMatcher = UriMatcher(UriMatcher.NO_MATCH)
 
@@ -24,7 +26,7 @@ class NoteKeeperContentProvider : ContentProvider() {
         uriMatcher.addURI(
             NoteKeeperProviderContract.AUTHORITY,
             NoteKeeperProviderContract.Notes.PATH,
-            COURSES
+            NOTES
         )
     }
 
@@ -81,6 +83,7 @@ class NoteKeeperContentProvider : ContentProvider() {
                     sortOrder
                 )
             }
+
         }
         return cursor
     }
@@ -91,4 +94,5 @@ class NoteKeeperContentProvider : ContentProvider() {
     ): Int {
         TODO("Implement this to handle requests to update one or more rows.")
     }
+
 }

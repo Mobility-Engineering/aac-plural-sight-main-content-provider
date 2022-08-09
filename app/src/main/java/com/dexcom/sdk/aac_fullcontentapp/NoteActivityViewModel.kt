@@ -1,6 +1,7 @@
 package com.dexcom.sdk.aac_fullcontentapp
 
 import android.app.Application
+import android.content.ContentProviderClient
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
@@ -11,9 +12,12 @@ import androidx.lifecycle.viewModelScope
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperContentProvider
+import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Courses
+import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Notes
 import kotlinx.coroutines.launch
 
 class NoteActivityViewModel(application: Application) : AndroidViewModel(application) {
+
     var originalNoteText: String? = null
     var originalNoteTitle: String? = null
     var originalNoteCourseId: String? = ""
@@ -21,22 +25,34 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
     var isNewlyCreated: Boolean = true
     var dbOpenHelper = NoteKeeperOpenHelper(application.baseContext)
     var coursesCursor: Cursor? = null
+    var notesCursor: Cursor? = null
 
     var courseIndex = MutableLiveData<Int>()
     var noteTitle = MutableLiveData<String>()
     var noteText = MutableLiveData<String>()
 
     //ContentProvider parameters
-
+    var uri = Uri.parse("content://com.dexcom.sdk.aac_fullcontentapp.provider.provider")
     var noteKeeperProvider = NoteKeeperContentProvider()
     val contentResolver = application.applicationContext.contentResolver
+    var providerClient: ContentProviderClient? = contentResolver.acquireContentProviderClient(uri)
+
+    //Used for populating spinner via ContentProvider as opossed to SQLite querying directly
     var providerCoursesCursor = MutableLiveData<Cursor>()
+    var providerNotesCursor = MutableLiveData<Cursor>()
+    var providerExpandedNotesCursor = MutableLiveData<Cursor>()
+
     val courseColumns = arrayOf(
-        CourseInfoEntry.COLUMN_COURSE_TITLE,
-        CourseInfoEntry.COLUMN_COURSE_ID,
+        Courses.COLUMN_COURSE_TITLE,
+        Courses.COLUMN_COURSE_ID,
         BaseColumns._ID
     )
-    val uri = Uri.parse("content://com.dexcom.sdk.aac_fullcontentapp.provider.provider")
+    val noteColumns = arrayOf(
+        Notes.COLUMN_NOTE_TITLE,
+        Notes.COLUMN_NOTE_TEXT,
+        Notes.COLUMN_COURSE_ID,
+        BaseColumns._ID
+    )
 
     companion object Constants {
         const val ORIGINAL_NOTE_COURSE_ID =
@@ -70,16 +86,59 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private suspend fun loadCourseContent() {
-        providerCoursesCursor.value = contentResolver.acquireContentProviderClient(uri)
-            ?.query(uri, courseColumns, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
-        //providerCoursesCursor.value  = noteKeeperProvider.query(uri, courseColumns, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
+        val courseUri = Courses.CONTENT_URI
+        providerCoursesCursor.value =
+            providerClient?.query(
+                courseUri,
+                courseColumns,
+                null,
+                null,
+                CourseInfoEntry.COLUMN_COURSE_TITLE
+            )
         coursesCursor = providerCoursesCursor.value
     }
 
+
     fun loadNoteData() {
-        viewModelScope.launch { loadNoteDataEquinox() }
+
+        //Loads Note Data without ContentProvider but SLite
+        viewModelScope.launch {
+
+            //loadNoteDataEquinox()
+            loadNoteContent()
+        }
     }
 
+    private suspend fun loadNoteContent() {
+        val noteUri = Notes.CONTENT_URI
+
+        providerNotesCursor.value =
+            providerClient?.query(
+                noteUri,
+                noteColumns,
+                "${BaseColumns._ID} = ?",
+                arrayOf(Integer.toString(noteId)),
+                NoteInfoEntry.COLUMN_NOTE_TITLE
+            )
+        notesCursor = providerNotesCursor.value
+
+        loadNoteDataProvider()
+    }
+
+    private suspend fun loadNoteDataProvider() {
+        val courseIdPos =
+            notesCursor?.getColumnIndex(NoteInfoEntry.COLUMN_COURSE_ID)!!
+        val noteTitlePos =
+            notesCursor?.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TITLE)!!
+        val noteTextPos =
+            notesCursor?.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TEXT)!!
+
+        //When a cursor is returned its position before the first row in the result to move specifically to that row
+        notesCursor!!.moveToNext()
+
+        displayNote(notesCursor!!, courseIdPos, noteTitlePos, noteTextPos)
+
+    }
 
     private suspend fun loadNoteDataEquinox() {
 

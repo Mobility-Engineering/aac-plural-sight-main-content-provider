@@ -2,6 +2,8 @@ package com.dexcom.sdk.aac_fullcontentapp
 
 import android.app.Application
 import android.content.ContentProviderClient
+import android.content.ContentUris
+import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
@@ -18,6 +20,7 @@ import kotlinx.coroutines.launch
 
 class NoteActivityViewModel(application: Application) : AndroidViewModel(application) {
 
+    lateinit var noteUri: Uri
     var originalNoteText: String? = null
     var originalNoteTitle: String? = null
     var originalNoteCourseId: String? = ""
@@ -30,7 +33,7 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
     var courseIndex = MutableLiveData<Int>()
     var noteTitle = MutableLiveData<String>()
     var noteText = MutableLiveData<String>()
-
+    //var noteUriPublisher = MutableLiveData<Uri>()
     //ContentProvider parameters
     var uri = Uri.parse("content://com.dexcom.sdk.aac_fullcontentapp.provider.provider")
     var noteKeeperProvider = NoteKeeperContentProvider()
@@ -76,7 +79,6 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
         originalNoteText = inState.getString(ORIGINAL_NOTE_COURSE_TEXT)
     }
 
-
     fun loadCourseData() {
 
         viewModelScope.launch {
@@ -109,12 +111,11 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    private suspend fun loadNoteContent() {
-        val noteUri = Notes.CONTENT_URI
 
+    private suspend fun loadNoteContent() {
         providerNotesCursor.value =
             providerClient?.query(
-                noteUri,
+                noteUri!!,
                 noteColumns,
                 "${BaseColumns._ID} = ?",
                 arrayOf(Integer.toString(noteId)),
@@ -186,6 +187,34 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
 
         displayNote(noteCursor, courseIdPos, noteTitlePos, noteTextPos)
 
+    }
+
+
+    fun insertNote() {
+        viewModelScope.launch {
+            insertNoteContent()
+        }
+    }
+    private suspend fun insertNoteContent() {
+        val values = ContentValues()
+        values.put (Notes.COLUMN_COURSE_ID, "")
+        values.put(Notes.COLUMN_NOTE_TITLE, "")
+        values.put(Notes.COLUMN_NOTE_TEXT, "")
+        noteUri = providerClient?.insert(Notes.CONTENT_URI, values)!!
+        //noteUriPublisher.value = noteUri
+        //now when the note gets created generate the id as previously
+    }
+    fun deleteNote(){
+        viewModelScope.launch {
+            deleteNoteContent()
+        }
+    }
+
+    private suspend fun deleteNoteContent() {
+        val rowSelection = "${BaseColumns._ID} =?"
+        val compatArgs = ContentUris.parseId(noteUri).toInt()
+        val rowArgs = arrayOf(compatArgs.toString())
+        providerClient?.delete(noteUri, rowSelection, rowArgs)
     }
 
     private fun displayNote(

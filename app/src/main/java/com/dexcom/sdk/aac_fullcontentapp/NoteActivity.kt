@@ -69,7 +69,7 @@ class NoteActivity : AppCompatActivity() {
         viewModel.providerCoursesCursor.observe(
             this,
             { cursor -> adapterCourses.changeCursor(cursor) })
-        viewModel.noteUriPublisher.observe(this, { uri -> id = ContentUris.parseId(uri).toInt() })
+        //viewModel.noteUriPublisher.observe(this, { uri -> id = ContentUris.parseId(uri).toInt() })
         adapterCourses = SimpleCursorAdapter(
             this,
             android.R.layout.simple_spinner_item,
@@ -374,7 +374,6 @@ class NoteActivity : AppCompatActivity() {
         id = db.insert(NoteInfoEntry.TABLE_NAME, null, values).toInt()
         */
 
-        viewModel.noteUri = ContentUris.withAppendedId(Notes.CONTENT_URI, id.toLong())
         viewModel.insertNote()
     }
 

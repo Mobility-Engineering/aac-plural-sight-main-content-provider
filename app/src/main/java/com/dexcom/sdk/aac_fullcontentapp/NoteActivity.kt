@@ -1,8 +1,10 @@
 package com.dexcom.sdk.aac_fullcontentapp
 
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Intent
 import android.database.Cursor
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.BaseColumns
@@ -13,9 +15,13 @@ import android.widget.SimpleCursorAdapter
 import android.widget.Spinner
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
-import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
+import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract
+import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.NoteInfoEntry
+import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.CourseInfoEntry
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityMainBinding
+import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Notes
+import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Courses
 
 class NoteActivity : AppCompatActivity() {
 
@@ -25,6 +31,7 @@ class NoteActivity : AppCompatActivity() {
     private var noteTitlePos: Int = 0
     private var courseIdPos: Int = 0
     private var id: Int = 0
+    private var noteUri: Uri? = null
 
     /*private var originalNoteText: String? = null
             private var orginalNoteTitle: String? = null
@@ -62,6 +69,7 @@ class NoteActivity : AppCompatActivity() {
         viewModel.providerCoursesCursor.observe(
             this,
             { cursor -> adapterCourses.changeCursor(cursor) })
+        viewModel.noteUriPublisher.observe(this, { uri -> id = ContentUris.parseId(uri).toInt() })
         adapterCourses = SimpleCursorAdapter(
             this,
             android.R.layout.simple_spinner_item,
@@ -230,8 +238,8 @@ class NoteActivity : AppCompatActivity() {
             if (isNewNote) {
                 DataManager.instance?.removeNote(notePosition)
                 val selection = BaseColumns._ID + " =?"
-                dbOpenHelper
-                deleteNodeFromDatabase()
+                //deleteNodeFromDatabase()
+                //viewModel.deleteNote()
             } else {
                 storePreviousNoteValues()
             }
@@ -240,8 +248,8 @@ class NoteActivity : AppCompatActivity() {
     }
 
     private fun deleteNodeFromDatabase() {
+
         val selection = BaseColumns._ID + " =?"
-        dbOpenHelper
         val selectionArgs = arrayOf(id.toString())
         val db = dbOpenHelper.writableDatabase
         db.delete(NoteInfoEntry.TABLE_NAME, selection, selectionArgs)
@@ -251,9 +259,8 @@ class NoteActivity : AppCompatActivity() {
             @Override
             protected doInBackground(params:Object){
 
-        }
-
-        }
+            }
+       }
         db.delete(NoteInfoEntry.TABLE_NAME, selection, selectionArgs)
         */
     }
@@ -326,6 +333,7 @@ class NoteActivity : AppCompatActivity() {
         //val position = intent.getIntExtra(NOTE_POSITION, POSITION_NOT_SET)
         id = intent.getIntExtra(NOTE_ID, ID_NOT_SET)
         viewModel.noteId = id
+        viewModel.noteUri = ContentUris.withAppendedId(Notes.CONTENT_URI, id.toLong())
         isNewNote = id == ID_NOT_SET
         //App Step - Create a new node
         if (isNewNote) {
@@ -357,12 +365,17 @@ class NoteActivity : AppCompatActivity() {
         notePosition = dm!!.createNewNote()
         noteInfo = dm?.notes?.get(notePosition)
         */
+        /* Replaced by ContetProvider insertion
         val values = ContentValues()
         values.put(NoteInfoEntry.COLUMN_NOTE_TITLE, "")
         values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, "")
         values.put(NoteInfoEntry.COLUMN_COURSE_ID, "")
         val db = dbOpenHelper.writableDatabase
         id = db.insert(NoteInfoEntry.TABLE_NAME, null, values).toInt()
+        */
+
+        viewModel.noteUri = ContentUris.withAppendedId(Notes.CONTENT_URI, id.toLong())
+        viewModel.insertNote()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -380,6 +393,8 @@ class NoteActivity : AppCompatActivity() {
             }
             R.id.action_cancel -> {
                 shouldFinish = true
+                //deleteNoromDatabase()
+                viewModel.deleteNote()
                 finish()
             }
         }

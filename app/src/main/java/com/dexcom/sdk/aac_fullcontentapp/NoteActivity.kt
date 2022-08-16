@@ -1,11 +1,16 @@
 package com.dexcom.sdk.aac_fullcontentapp
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Build
 import android.os.Bundle
 import android.provider.BaseColumns
 import android.view.Menu
@@ -13,19 +18,20 @@ import android.view.MenuItem
 import android.widget.EditText
 import android.widget.SimpleCursorAdapter
 import android.widget.Spinner
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
-import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract
-import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.NoteInfoEntry
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.CourseInfoEntry
+import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.NoteInfoEntry
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityMainBinding
 import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Notes
-import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Courses
+
 
 class NoteActivity : AppCompatActivity() {
-
-
+    private val CHANNEL_ID: String = "1"
     private var noteCursor: Cursor? = null
     private var noteTextPos: Int = 0
     private var noteTitlePos: Int = 0
@@ -103,7 +109,6 @@ class NoteActivity : AppCompatActivity() {
         }
 
         saveOriginalNoteValues() //Store backup of original noteInfo values used onCancel()
-
 
     }
 
@@ -377,6 +382,13 @@ class NoteActivity : AppCompatActivity() {
         viewModel.insertNote()
     }
 
+    private class CreateNewNoteWithAsyncTask(){
+
+
+    }
+
+
+
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_note, menu)
         return true
@@ -396,10 +408,68 @@ class NoteActivity : AppCompatActivity() {
                 viewModel.deleteNote()
                 finish()
             }
+            R.id.action_notify -> {
+                showReminderNotification()
+                return true
+
+            }
         }
         return false
 
     }
+
+    private fun showReminderNotification() {
+
+        val title = binding.textNoteTitle.text.toString()
+        val text = binding.textNodeText.text.toString()
+        var builder = NotificationCompat.Builder(this, CHANNEL_ID)
+        .setSmallIcon(R.drawable.ic_stat_note_reminder)
+        .setContentTitle(title)
+        .setContentText(text)
+            .setDefaults(Notification.DEFAULT_ALL)
+            .setTicker("This is the review note for ${title}")
+            .setStyle(NotificationCompat.BigTextStyle()
+                .setBigContentTitle(title+title+title)
+                . bigText(text+text+text)
+                .setSummaryText("Review Notes"))
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = getString(R.string.chanel_name)
+            val descriptionText = getString(R.string.channel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(getString(R.string.channel_id), name, importance).apply {
+                description = descriptionText
+            }
+            // Register the channel with the system
+            val notificationManager: NotificationManager =
+                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        //Create an explicit intent for the activity
+
+        val pendingIntent = createPendingIntent()
+        builder.setContentIntent(pendingIntent)
+            .setChannelId(getString(R.string.channel_id))
+            .setAutoCancel(true)
+
+        with(NotificationManagerCompat.from(this)) {
+            // notificationId is a unique int for each notification that you must define
+            notify(0, builder.build())
+        }
+    }
+
+    private fun createPendingIntent():PendingIntent {
+        //don't use intent activity atributte as it will be set to null once the activity is destroyed
+        val intent = Intent(this, NoteActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        intent.putExtra(NOTE_ID, viewModel.noteId)
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, FLAG_IMMUTABLE)
+        return pendingIntent
+    }
+
 
     private fun sendMail() {
         var course = spinnerCourses.selectedItem as CourseInfo

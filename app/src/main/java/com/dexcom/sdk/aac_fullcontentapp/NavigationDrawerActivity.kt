@@ -2,6 +2,9 @@ package com.dexcom.sdk.aac_fullcontentapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
 import android.view.Menu
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.navigation.NavigationView
@@ -12,6 +15,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
 import androidx.navigation.NavController
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityNavigationDrawerBinding
@@ -66,6 +70,20 @@ class NavigationDrawerActivity : AppCompatActivity() {
         }
 
     }
+
+    override fun onResume() {
+       //openDrawerOnDelay()
+        super.onResume()
+    }
+
+    private fun openDrawerOnDelay() {
+        val handler = Handler(Looper.getMainLooper())
+        handler.postDelayed(Runnable(){
+            run(){
+                val drawer = binding.drawerLayout
+                drawer.openDrawer(GravityCompat.START)
+            }
+        }, 1000)    }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.

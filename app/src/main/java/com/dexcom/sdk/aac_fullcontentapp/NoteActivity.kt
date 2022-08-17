@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Intent
@@ -382,11 +383,10 @@ class NoteActivity : AppCompatActivity() {
         viewModel.insertNote()
     }
 
-    private class CreateNewNoteWithAsyncTask(){
+    private class CreateNewNoteWithAsyncTask() {
 
 
     }
-
 
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -423,24 +423,28 @@ class NoteActivity : AppCompatActivity() {
         val title = binding.textNoteTitle.text.toString()
         val text = binding.textNodeText.text.toString()
         var builder = NotificationCompat.Builder(this, CHANNEL_ID)
-        .setSmallIcon(R.drawable.ic_stat_note_reminder)
-        .setContentTitle(title)
-        .setContentText(text)
+            .setSmallIcon(R.drawable.ic_stat_note_reminder)
+            .setContentTitle(title)
+            .setContentText(text)
             .setDefaults(Notification.DEFAULT_ALL)
             .setTicker("This is the review note for ${title}")
-            .setStyle(NotificationCompat.BigTextStyle()
-                .setBigContentTitle(title+title+title)
-                . bigText(text+text+text)
-                .setSummaryText("Review Notes"))
-        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .setBigContentTitle(title + title + title)
+                    .bigText(text + text + text)
+                    .setSummaryText("Review Notes")
+            )
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = getString(R.string.chanel_name)
             val descriptionText = getString(R.string.channel_description)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(getString(R.string.channel_id), name, importance).apply {
-                description = descriptionText
-            }
+            val channel =
+                NotificationChannel(getString(R.string.channel_id), name, importance).apply {
+                    description = descriptionText
+                }
             // Register the channel with the system
             val notificationManager: NotificationManager =
                 getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -454,20 +458,40 @@ class NoteActivity : AppCompatActivity() {
             .setChannelId(getString(R.string.channel_id))
             .setAutoCancel(true)
 
+
+        builder = addAction(builder)
         with(NotificationManagerCompat.from(this)) {
             // notificationId is a unique int for each notification that you must define
             notify(0, builder.build())
         }
     }
 
-    private fun createPendingIntent():PendingIntent {
+    private fun createPendingIntent(): PendingIntent {
         //don't use intent activity atributte as it will be set to null once the activity is destroyed
-        val intent = Intent(this, NoteActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val intent = Intent(applicationContext, NoteActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        intent.putExtra(NOTE_ID, viewModel.noteId)
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, FLAG_IMMUTABLE)
+        val id = viewModel.noteId
+        intent.putExtra(NOTE_ID, id)
+        val pendingIntent: PendingIntent =
+            PendingIntent.getActivity(this, 0, intent, FLAG_UPDATE_CURRENT)
         return pendingIntent
+    }
+
+    private fun addAction(builder: NotificationCompat.Builder): NotificationCompat.Builder {
+        builder.addAction(
+            0,
+            "View all notes",
+            PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, NavigationDrawerActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+                },
+                FLAG_UPDATE_CURRENT
+            )
+        )
+        return builder
     }
 
 

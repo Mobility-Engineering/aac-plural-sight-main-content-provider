@@ -19,16 +19,24 @@ import android.view.MenuItem
 import android.widget.EditText
 import android.widget.SimpleCursorAdapter
 import android.widget.Spinner
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
+import androidx.work.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.CourseInfoEntry
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.NoteInfoEntry
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityMainBinding
 import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Notes
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackup
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackup.ALL_COURSES
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService.Companion.EXTRA_COURSE_ID
+import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 
 class NoteActivity : AppCompatActivity() {
@@ -217,7 +225,7 @@ class NoteActivity : AppCompatActivity() {
 
     }
 
-    private fun getIndexOfCourseId(courseId: String?): Int {
+    private fun  getIndexOfCourseId(courseId: String?): Int {
         val cursor = adapterCourses.cursor
         //viewModel.coursesCursor = cursor
         val currentIdPos = cursor.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_ID)
@@ -394,6 +402,7 @@ class NoteActivity : AppCompatActivity() {
         return true
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
         val id = item.itemId
@@ -413,8 +422,44 @@ class NoteActivity : AppCompatActivity() {
                 return true
 
             }
+            R.id.action_note_backup -> {
+                //noteBackup()
+                workManagerNoteBackup()
+                return true
+            }
         }
         return false
+
+    }
+
+    private fun noteBackup() {
+        NoteBackup.doBackup(this, ALL_COURSES)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun  workManagerNoteBackup(){
+        //val course = "android_async"
+        /*val intent:Intent? = Intent(this, NoteBackupService::class.java)
+        intent?.putExtra( EXTRA_COURSE_ID, ALL_COURSES)*/
+        // Create the Constraints
+        val constraints = Constraints.Builder()
+            .build()
+
+// Define the input
+
+        val cpData = workDataOf(EXTRA_COURSE_ID to ALL_COURSES)
+
+// Bring it all together by creating the WorkRequest; this also sets the back off criteria
+            val backupNoteRequest = OneTimeWorkRequestBuilder<NoteBackupService>()
+            .setInputData(cpData)
+            .setConstraints(constraints)
+            .setBackoffCriteria(
+                BackoffPolicy.LINEAR,
+                OneTimeWorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS)
+            .build()
+
+        WorkManager.getInstance(applicationContext).enqueue(backupNoteRequest)
 
     }
 

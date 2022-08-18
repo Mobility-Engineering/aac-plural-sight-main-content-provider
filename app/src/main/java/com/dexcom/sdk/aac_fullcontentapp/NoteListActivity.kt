@@ -12,6 +12,7 @@ import android.view.MenuItem
 import android.widget.ArrayAdapter
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationCompat
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.NavType
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -65,7 +66,6 @@ class NoteListActivity : AppCompatActivity() {
 
 
     override fun onResume() {
-        noteRecyclerAdapter?.notifyDataSetChanged()
         super.onResume()
     }
 

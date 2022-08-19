@@ -6,6 +6,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
+import android.app.job.JobInfo
+import android.app.job.JobScheduler
+import android.content.ComponentName
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Intent
@@ -13,6 +16,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PersistableBundle
 import android.provider.BaseColumns
 import android.view.Menu
 import android.view.MenuItem
@@ -35,6 +39,7 @@ import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackup
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackup.ALL_COURSES
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService.Companion.EXTRA_COURSE_ID
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteUploaderJobService
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -225,7 +230,7 @@ class NoteActivity : AppCompatActivity() {
 
     }
 
-    private fun  getIndexOfCourseId(courseId: String?): Int {
+    private fun getIndexOfCourseId(courseId: String?): Int {
         val cursor = adapterCourses.cursor
         //viewModel.coursesCursor = cursor
         val currentIdPos = cursor.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_ID)
@@ -427,9 +432,25 @@ class NoteActivity : AppCompatActivity() {
                 workManagerNoteBackup()
                 return true
             }
+            R.id.action_note_upload -> {
+                scheduleNoteUpload()
+                return true
+            }
         }
         return false
+    }
 
+    private fun scheduleNoteUpload() {
+        val componentName = ComponentName(this, NoteUploaderJobService::class.java)
+        val bundle = PersistableBundle()
+        bundle.putString(NoteUploaderJobService.EXTRA_DATA_URI, Notes.CONTENT_URI.toString())
+        val jobInfo = JobInfo.Builder(NOTE_UPLOADER_JOB_ID,  componentName)
+            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .setExtras(bundle)
+            .build()
+
+        val scheduler = getSystemService(JOB_SCHEDULER_SERVICE) as JobScheduler
+        scheduler.schedule(jobInfo)
     }
 
     private fun noteBackup() {
@@ -437,7 +458,7 @@ class NoteActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun  workManagerNoteBackup(){
+    private fun workManagerNoteBackup() {
         //val course = "android_async"
         /*val intent:Intent? = Intent(this, NoteBackupService::class.java)
         intent?.putExtra( EXTRA_COURSE_ID, ALL_COURSES)*/
@@ -450,13 +471,14 @@ class NoteActivity : AppCompatActivity() {
         val cpData = workDataOf(EXTRA_COURSE_ID to ALL_COURSES)
 
 // Bring it all together by creating the WorkRequest; this also sets the back off criteria
-            val backupNoteRequest = OneTimeWorkRequestBuilder<NoteBackupService>()
+        val backupNoteRequest = OneTimeWorkRequestBuilder<NoteBackupService>()
             .setInputData(cpData)
             .setConstraints(constraints)
             .setBackoffCriteria(
                 BackoffPolicy.LINEAR,
                 OneTimeWorkRequest.MIN_BACKOFF_MILLIS,
-                TimeUnit.MILLISECONDS)
+                TimeUnit.MILLISECONDS
+            )
             .build()
 
         WorkManager.getInstance(applicationContext).enqueue(backupNoteRequest)
@@ -556,5 +578,6 @@ class NoteActivity : AppCompatActivity() {
         const val NOTE_INFO = "NOTE_INFO"
         const val NOTE_ID = "NOTE_POSITION"
         const val ID_NOT_SET = -1
+        const val NOTE_UPLOADER_JOB_ID = 1
     }
 }

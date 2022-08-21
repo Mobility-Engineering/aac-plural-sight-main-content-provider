@@ -3,10 +3,13 @@ package com.dexcom.sdk.aac_fullcontentapp.service
 import android.content.ContentProviderClient
 import android.content.Context
 import android.net.Uri
-import android.os.Handler
 import android.util.Log
-import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperContentProvider
 import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Notes
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import java.lang.Thread.sleep
 
 object NoteBackup {
@@ -14,7 +17,7 @@ object NoteBackup {
     const val ALL_COURSES = "ALL COURSES"
     val TAG = NoteBackup::class.simpleName.toString()
 
-    fun doBackup(context: Context, backUpCourseId: String) {
+    suspend fun doBackup(context: Context, backUpCourseId: String) {
         //val contentResolver = applicationContext.contentResolver
         var providerClient: ContentProviderClient? =
             context.contentResolver.acquireContentProviderClient(uri)
@@ -25,7 +28,7 @@ object NoteBackup {
         )
         var selection: String? = null
         var selectionArgs: Array<String>? = null
-        if (!backUpCourseId.equals(ALL_COURSES)){
+        if (!backUpCourseId.equals(ALL_COURSES)) {
             selection = "${Notes.COLUMN_COURSE_ID} =?"
             selectionArgs = arrayOf(backUpCourseId)
         }
@@ -49,22 +52,22 @@ object NoteBackup {
             val noteText = noteTextPos?.let { cursor?.getString(it) }
 
             if (!noteTitle.equals("")) {
-                Log.i(TAG, ">>>Backing up Note<<<< ${courseId} | ${noteTitle} | ${noteText} with count ${count}")
+                Log.i(
+                    TAG,
+                    ">>>Backing up Note on thread ${Thread.currentThread()} <<<< ${courseId} | ${noteTitle} | ${noteText} with count ${count}"
+                )
                 count++
-                //simulateRunningWork()
+
+                simulateRunningWork()
+
             }
         }
         Log.i(TAG, ">>> BACKUP COMPLETE ***<<<")
         cursor?.close()
-
-
     }
 
-    private fun simulateRunningWork() {
-        val handler = Handler()
-        handler.post {
-            sleep(5000L)
-        }
+    private suspend fun simulateRunningWork() {
+        delay(5000)
     }
-
 }
+

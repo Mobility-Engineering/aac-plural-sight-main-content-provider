@@ -36,6 +36,12 @@
         <activity
             android:name=".NoteActivity"
             android:exported="true" />
+        <service
+            android:name= ".service.NoteUploaderJobService"
+            android:enabled= "true"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+         </service>
     </application>
 
 </manifest>

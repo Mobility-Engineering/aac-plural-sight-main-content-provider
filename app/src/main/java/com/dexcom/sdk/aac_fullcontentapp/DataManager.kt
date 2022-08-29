@@ -20,7 +20,7 @@ class DataManager private constructor() {
         get() = mNotes
 
     fun createNewNote(): Int {
-        val note = NoteInfo(0,null, null, null)
+        val note = NoteInfo(0, null, null, null)
         mNotes.add(note)
         return mNotes.size - 1
     }
@@ -279,7 +279,7 @@ class DataManager private constructor() {
             val courseId = cursor.getString(courseIdPos)
             val noteCourse: CourseInfo? = getCourse(courseId)
             val id = cursor.getInt(idPos)
-            val note = NoteInfo(id,noteCourse, noteTitle, noteText)
+            val note = NoteInfo(id, noteCourse, noteTitle, noteText)
             mNotes.add(note)
         }
         cursor.close()

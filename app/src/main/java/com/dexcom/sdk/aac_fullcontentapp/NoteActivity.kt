@@ -1,22 +1,16 @@
 package com.dexcom.sdk.aac_fullcontentapp
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_IMMUTABLE
-import android.app.PendingIntent.FLAG_UPDATE_CURRENT
+import android.app.*
+import android.app.PendingIntent.*
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
-import android.content.ComponentName
-import android.content.ContentUris
-import android.content.ContentValues
-import android.content.Intent
+import android.content.*
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PersistableBundle
+import android.os.SystemClock
 import android.provider.BaseColumns
 import android.view.Menu
 import android.view.MenuItem
@@ -30,22 +24,21 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
 import androidx.work.*
+import com.dexcom.sdk.aac_fullcontentapp.receiver.NoteReminderReceiver
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.CourseInfoEntry
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.NoteInfoEntry
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityMainBinding
 import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Notes
-import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackup
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackup.ALL_COURSES
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService.Companion.EXTRA_COURSE_ID
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteUploaderJobService
-import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 
 class NoteActivity : AppCompatActivity() {
-    private val CHANNEL_ID: String = "1"
+    private val CHANNEL_ID: String = "2"
     private var noteCursor: Cursor? = null
     private var noteTextPos: Int = 0
     private var noteTitlePos: Int = 0
@@ -123,9 +116,19 @@ class NoteActivity : AppCompatActivity() {
         }
 
         saveOriginalNoteValues() //Store backup of original noteInfo values used onCancel()
-
+        //registerNoteReminderReceiver()
     }
 
+    /*private fun registerNoteReminderReceiver() {
+        val courseEventsReceiver = NoteReminderReceiver()
+        val intentFilter = IntentFilter(NoteReminderReceiver.ACTION_NOTE_REMINDER_EVENT)
+        registerReceiver(courseEventsReceiver, intentFilter)
+    }
+     */
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        this.intent = intent
+    }
 
     private fun loadCourseData() {
         //Loads the Course Titles on Spinner from Database
@@ -423,6 +426,7 @@ class NoteActivity : AppCompatActivity() {
                 finish()
             }
             R.id.action_notify -> {
+                //showFutureReminderNotification()
                 showReminderNotification()
                 return true
 
@@ -444,8 +448,8 @@ class NoteActivity : AppCompatActivity() {
         val componentName = ComponentName(this, NoteUploaderJobService::class.java)
         val bundle = PersistableBundle()
         bundle.putString(NoteUploaderJobService.EXTRA_DATA_URI, Notes.CONTENT_URI.toString())
-        val jobInfo = JobInfo.Builder(NOTE_UPLOADER_JOB_ID,  componentName)
-            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+        val jobInfo = JobInfo.Builder(NOTE_UPLOADER_JOB_ID, componentName)
+            //.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
             .setExtras(bundle)
             .build()
 
@@ -454,7 +458,7 @@ class NoteActivity : AppCompatActivity() {
     }
 
     private fun noteBackup() {
-        NoteBackup.doBackup(this, ALL_COURSES)
+        //NoteBackup.doBackup(this, ALL_COURSES)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -480,9 +484,30 @@ class NoteActivity : AppCompatActivity() {
                 TimeUnit.MILLISECONDS
             )
             .build()
-
         WorkManager.getInstance(applicationContext).enqueue(backupNoteRequest)
 
+    }
+
+    private fun showFutureReminderNotification() {
+        val noteTitle = binding.textNoteTitle.text.toString()
+        val noteText = binding.textNodeText.text.toString()
+        val noteId = viewModel.noteId
+        val intent = Intent(
+            this, NoteReminderReceiver::class.java
+        )
+        intent.action = NoteReminderReceiver.ACTION_NOTE_REMINDER_EVENT
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_TITLE, noteTitle)
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_TEXT, noteText)
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_ID, noteId)
+
+        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+        val currentTimeInMilliseconds = SystemClock.elapsedRealtime()
+        //val ONE_HOUR = 60 * 60 * 1000
+        //val TEN_SECONDS = 10 * 1000
+        val ONE_SECOND = 1000
+        val alarmTime = currentTimeInMilliseconds + ONE_SECOND
+        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, alarmTime, pendingIntent)
     }
 
     private fun showReminderNotification() {
@@ -503,7 +528,6 @@ class NoteActivity : AppCompatActivity() {
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = getString(R.string.chanel_name)
             val descriptionText = getString(R.string.channel_description)
@@ -519,7 +543,6 @@ class NoteActivity : AppCompatActivity() {
         }
 
         //Create an explicit intent for the activity
-
         val pendingIntent = createPendingIntent()
         builder.setContentIntent(pendingIntent)
             .setChannelId(getString(R.string.channel_id))
@@ -536,12 +559,12 @@ class NoteActivity : AppCompatActivity() {
     private fun createPendingIntent(): PendingIntent {
         //don't use intent activity atributte as it will be set to null once the activity is destroyed
         val intent = Intent(applicationContext, NoteActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val id = viewModel.noteId
         intent.putExtra(NOTE_ID, id)
         val pendingIntent: PendingIntent =
-            PendingIntent.getActivity(this, 0, intent, FLAG_UPDATE_CURRENT)
+            PendingIntent.getActivity(this, 0, intent, FLAG_UPDATE_CURRENT or FLAG_MUTABLE)
         return pendingIntent
     }
 
@@ -555,7 +578,7 @@ class NoteActivity : AppCompatActivity() {
                 Intent(this, NavigationDrawerActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
                 },
-                FLAG_UPDATE_CURRENT
+                FLAG_IMMUTABLE
             )
         )
         return builder

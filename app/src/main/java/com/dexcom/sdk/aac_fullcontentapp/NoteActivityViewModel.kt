@@ -11,6 +11,7 @@ import android.provider.BaseColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.dexcom.sdk.aac_fullcontentapp.receiver.CourseEventsBroadcastHelper
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperContentProvider
@@ -246,6 +247,7 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
         //spinnerCourses.setSelection(courseIndex)
         //textNoteTitle.setText(noteTitle)
         //textNoteText.setText(noteText)
+        CourseEventsBroadcastHelper.sendEventBroadcast(getApplication<Application>().applicationContext,courseId, "Editing note")
     }
 
     private fun getIndexOfCourseId(courseId: String?): Int {

@@ -34,6 +34,7 @@ import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackup.ALL_COURSES
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService.Companion.EXTRA_COURSE_ID
 import com.dexcom.sdk.aac_fullcontentapp.service.NoteUploaderJobService
+import com.dexcom.sdk.aac_fullcontentapp.ui.ModuleStatusView
 import java.util.concurrent.TimeUnit
 
 
@@ -56,6 +57,7 @@ class NoteActivity : AppCompatActivity() {
     private lateinit var textNoteTitle: EditText
     private lateinit var textNoteText: EditText
     private lateinit var spinnerCourses: Spinner
+    private lateinit var moduleStatusView: ModuleStatusView
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: NoteActivityViewModel
     lateinit var dbOpenHelper: NoteKeeperOpenHelper
@@ -66,6 +68,9 @@ class NoteActivity : AppCompatActivity() {
         dbOpenHelper = NoteKeeperOpenHelper(this)
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+
+        moduleStatusView = binding.moduleStatusView
+        loadModuleStatusValues()
 
         viewModel = ViewModelProvider(this).get(NoteActivityViewModel::class.java)
 
@@ -117,6 +122,14 @@ class NoteActivity : AppCompatActivity() {
 
         saveOriginalNoteValues() //Store backup of original noteInfo values used onCancel()
         //registerNoteReminderReceiver()
+    }
+
+    private fun loadModuleStatusValues() {
+        val totalNumberOfModules = 11
+        val completeNumberOfModules = 7
+        val moduleStatus = Array<Boolean>(totalNumberOfModules){i -> if(i<completeNumberOfModules)true else false}
+        moduleStatusView.moduleStatus = moduleStatus
+
     }
 
     /*private fun registerNoteReminderReceiver() {

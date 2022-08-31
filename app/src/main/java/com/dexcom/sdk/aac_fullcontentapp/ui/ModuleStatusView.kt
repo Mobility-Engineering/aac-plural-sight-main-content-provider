@@ -74,7 +74,7 @@ class ModuleStatusView : View {
         paintOutline = Paint(Paint.ANTI_ALIAS_FLAG)
         paintOutline.setStyle(Paint.Style.STROKE)
         paintOutline.setColor(outLineColor)
-
+        paintOutline.strokeWidth = outlineWidth
         fillColor = context.resources.getColor(R.color.fullcontentapp_orange)
         paintFill = Paint(Paint.ANTI_ALIAS_FLAG)
         paintFill.setColor(fillColor)

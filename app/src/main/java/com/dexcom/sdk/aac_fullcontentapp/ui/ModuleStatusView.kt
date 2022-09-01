@@ -247,19 +247,19 @@ class ModuleStatusView : View {
         )
 
     }
-    inner class ModuleStatusAccesibilityHelper(host:View): ExploreByTouchHelper(host){
+    inner class ModuleStatusAccesibilityHelper(host:View): ExploreByTouchHelper(host) {
         override fun getVirtualViewAt(x: Float, y: Float): Int {
 
             var moduleIndex = findItemAtPoint(x, y)
-                        if (moduleIndex == INVALID_INDEX)
-                            moduleIndex = INVALID_ID
-                    return moduleIndex
+            if (moduleIndex == INVALID_INDEX)
+                moduleIndex = INVALID_ID
+            return moduleIndex
         }
 
         override fun getVisibleVirtualViews(virtualViewIds: MutableList<Int>?) {
-         for ( moduleIndex in 0..moduleRectangles.lastIndex){
-             virtualViewIds?.add(moduleIndex)
-         }
+            for (moduleIndex in 0..moduleRectangles.lastIndex) {
+                virtualViewIds?.add(moduleIndex)
+            }
         }
 
         override fun onPopulateNodeForVirtualView(
@@ -268,8 +268,10 @@ class ModuleStatusView : View {
         ) {
             node.isFocusable = true
             node.setBoundsInParent(moduleRectangles[virtualViewId])
-                    //= moduleRectangles[virtualViewId]
             node.contentDescription = "Module ${virtualViewId}"
+            node.isCheckable = true
+            node.isChecked = moduleStatus[virtualViewId]
+            node.addAction(AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_CLICK)
         }
 
         override fun onPerformActionForVirtualView(
@@ -277,11 +279,17 @@ class ModuleStatusView : View {
             action: Int,
             arguments: Bundle?
         ): Boolean {
-            TODO("Not yet implemented")
+
+            when (action) {
+                AccessibilityNodeInfoCompat.ACTION_CLICK -> {
+                    onModuleSelected(virtualViewId)
+                    return true
+                }
+            }
+            return false
         }
-
-
     }
+
     companion object {
         const val EDIT_MODE_MODULE_COUNT = 7
         const val INVALID_INDEX = -1

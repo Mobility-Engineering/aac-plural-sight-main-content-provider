@@ -15,6 +15,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityEventCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.customview.widget.ExploreByTouchHelper
 import com.dexcom.sdk.aac_fullcontentapp.R
@@ -133,6 +134,8 @@ class ModuleStatusView : View {
             return
         moduleStatus[moduleIndex] = !moduleStatus[moduleIndex]
         invalidate()
+        accesibilityHelper.invalidateVirtualView(moduleIndex)
+        accesibilityHelper.sendEventForVirtualView(moduleIndex, AccessibilityEventCompat.TYPE_VIEW_CONTEXT_CLICKED)
 
     }
 

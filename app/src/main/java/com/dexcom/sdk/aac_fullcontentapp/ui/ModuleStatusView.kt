@@ -6,18 +6,27 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
+import android.os.Build
+import android.os.Bundle
 import android.text.TextPaint
 import android.util.AttributeSet
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import androidx.annotation.RequiresApi
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import androidx.customview.widget.ExploreByTouchHelper
 import com.dexcom.sdk.aac_fullcontentapp.R
 
 /**
  * TODO: document your custom view class.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 class ModuleStatusView : View {
 
 
+    private lateinit var accesibilityHelper: ModuleStatusView.ModuleStatusAccesibilityHelper
     private lateinit var paintFill: Paint
     private lateinit var paintOutline: Paint
     private lateinit var moduleRectangles: Array<Rect>
@@ -38,6 +47,7 @@ class ModuleStatusView : View {
         init(null, 0)
     }
 
+
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
         init(attrs, 0)
     }
@@ -50,10 +60,16 @@ class ModuleStatusView : View {
         init(attrs, defStyle)
     }
 
+
     private fun init(attrs: AttributeSet?, defStyle: Int) {
         // Load attributes
         if (isInEditMode)
             setUpEditModeValues()
+        focusable = FOCUSABLE
+        accesibilityHelper  = ModuleStatusAccesibilityHelper(this)
+        ViewCompat.setAccessibilityDelegate(this, accesibilityHelper)
+
+
         val a = context.obtainStyledAttributes(
             attrs, R.styleable.ModuleStatusView, defStyle, 0
         )
@@ -80,6 +96,21 @@ class ModuleStatusView : View {
         paintFill.setColor(fillColor)
 
         radius = (shapeSize.toFloat() - outlineWidth) / 2
+    }
+
+    override fun onFocusChanged(gainFocus: Boolean, direction: Int, previouslyFocusedRect: Rect?) {
+        super.onFocusChanged(gainFocus, direction, previouslyFocusedRect)
+        accesibilityHelper.onFocusChanged(gainFocus, direction, previouslyFocusedRect)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+
+        val keyEvent = KeyEvent(event)
+        return accesibilityHelper.dispatchKeyEvent(keyEvent) || super.dispatchKeyEvent(event)
+    }
+
+    override fun dispatchHoverEvent(event: MotionEvent?): Boolean {
+        return accesibilityHelper.dispatchHoverEvent(event!!) || super.dispatchHoverEvent(event)
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -216,7 +247,41 @@ class ModuleStatusView : View {
         )
 
     }
+    inner class ModuleStatusAccesibilityHelper(host:View): ExploreByTouchHelper(host){
+        override fun getVirtualViewAt(x: Float, y: Float): Int {
 
+            var moduleIndex = findItemAtPoint(x, y)
+                        if (moduleIndex == INVALID_INDEX)
+                            moduleIndex = INVALID_ID
+                    return moduleIndex
+        }
+
+        override fun getVisibleVirtualViews(virtualViewIds: MutableList<Int>?) {
+         for ( moduleIndex in 0..moduleRectangles.lastIndex){
+             virtualViewIds?.add(moduleIndex)
+         }
+        }
+
+        override fun onPopulateNodeForVirtualView(
+            virtualViewId: Int,
+            node: AccessibilityNodeInfoCompat
+        ) {
+            node.isFocusable = true
+            node.setBoundsInParent(moduleRectangles[virtualViewId])
+                    //= moduleRectangles[virtualViewId]
+            node.contentDescription = "Module ${virtualViewId}"
+        }
+
+        override fun onPerformActionForVirtualView(
+            virtualViewId: Int,
+            action: Int,
+            arguments: Bundle?
+        ): Boolean {
+            TODO("Not yet implemented")
+        }
+
+
+    }
     companion object {
         const val EDIT_MODE_MODULE_COUNT = 7
         const val INVALID_INDEX = -1

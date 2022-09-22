@@ -16,4 +16,9 @@
         android:icon="@drawable/ic_baseline_cancel_24"
         android:title="@string/cancel"
         />
+    <item
+        android:id="@+id/action_notify"
+        android:icon="@drawable/ic_baseline_notifications_active_24"
+        android:title="@string/cancel"
+        />
 </menu>

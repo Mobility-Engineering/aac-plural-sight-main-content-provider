@@ -25,4 +25,8 @@
     <string name="menu_slideshow">Slideshow</string>
     <string name="button_to_add_new_note">Button to add new note</string>
     <string name="button_to_add_a_note">Button to add a note</string>
+
+    <string name="chanel_name"> </string>
+    <string name="chanel_description"> </string>
+    <string name="chanel_id"> </string>
 </resources>

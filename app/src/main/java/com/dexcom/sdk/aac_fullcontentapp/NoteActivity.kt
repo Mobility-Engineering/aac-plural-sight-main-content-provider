@@ -423,7 +423,7 @@ class NoteActivity : AppCompatActivity() {
         val title = binding.textNoteTitle.text.toString()
         val text = binding.textNodeText.text.toString()
         var builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_note_reminder)
+            .setSmallIcon(R.drawable.ic_baseline_notifications_active_24)
             .setContentTitle(title)
             .setContentText(text)
             .setDefaults(Notification.DEFAULT_ALL)
@@ -439,10 +439,10 @@ class NoteActivity : AppCompatActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = getString(R.string.chanel_name)
-            val descriptionText = getString(R.string.channel_description)
+            val descriptionText = getString(R.string.chanel_description)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel =
-                NotificationChannel(getString(R.string.channel_id), name, importance).apply {
+                NotificationChannel(getString(R.string.chanel_id), name, importance).apply {
                     description = descriptionText
                 }
             // Register the channel with the system
@@ -455,7 +455,7 @@ class NoteActivity : AppCompatActivity() {
 
         val pendingIntent = createPendingIntent()
         builder.setContentIntent(pendingIntent)
-            .setChannelId(getString(R.string.channel_id))
+            .setChannelId(getString(R.string.chanel_id))
             .setAutoCancel(true)
 
 

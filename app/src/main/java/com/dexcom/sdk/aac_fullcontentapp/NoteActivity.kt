@@ -1,34 +1,50 @@
 package com.dexcom.sdk.aac_fullcontentapp
 
-import android.content.ContentValues
-import android.content.Intent
+import android.app.*
+import android.app.PendingIntent.*
+import android.app.job.JobInfo
+import android.app.job.JobScheduler
+import android.content.*
 import android.database.Cursor
-import android.os.AsyncTask
-import androidx.appcompat.app.AppCompatActivity
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.PersistableBundle
+import android.os.SystemClock
 import android.provider.BaseColumns
-import android.provider.ContactsContract
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.SimpleCursorAdapter
 import android.widget.Spinner
+import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
-import androidx.loader.app.LoaderManager
-import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.*
+import androidx.work.*
+import com.dexcom.sdk.aac_fullcontentapp.receiver.NoteReminderReceiver
+import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.CourseInfoEntry
+import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperDatabaseContract.NoteInfoEntry
 import com.dexcom.sdk.aac_fullcontentapp.database.NoteKeeperOpenHelper
 import com.dexcom.sdk.aac_fullcontentapp.databinding.ActivityMainBinding
-import java.lang.AssertionError
+import com.dexcom.sdk.aac_fullcontentapp.provider.NoteKeeperProviderContract.Notes
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackup.ALL_COURSES
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteBackupService.Companion.EXTRA_COURSE_ID
+import com.dexcom.sdk.aac_fullcontentapp.service.NoteUploaderJobService
+import java.util.concurrent.TimeUnit
 
-class NoteActivity:AppCompatActivity(){
 
-
+class NoteActivity : AppCompatActivity() {
+    private val CHANNEL_ID: String = "2"
     private var noteCursor: Cursor? = null
     private var noteTextPos: Int = 0
     private var noteTitlePos: Int = 0
     private var courseIdPos: Int = 0
     private var id: Int = 0
+    private var noteUri: Uri? = null
 
     /*private var originalNoteText: String? = null
             private var orginalNoteTitle: String? = null
@@ -51,29 +67,35 @@ class NoteActivity:AppCompatActivity(){
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
-
         viewModel = ViewModelProvider(this).get(NoteActivityViewModel::class.java)
 
 
-        val viewArray:IntArray? = IntArray(1){i -> android.R.id.text1}
+        val viewArray: IntArray? = IntArray(1) { i -> android.R.id.text1 }
         binding.spinnerCourses.also { spinnerCourses = it }
         val courses: List<CourseInfo> = DataManager.instance!!.courses
 
 
-        viewModel.noteText.observe(this, {noteText -> textNoteText.setText(noteText)})
-        viewModel.noteTitle.observe(this, {noteTitle -> textNoteTitle.setText(noteTitle)})
-        viewModel.courseIndex.observe(this,{courseIndex -> spinnerCourses.setSelection(courseIndex)})
-
-        adapterCourses= SimpleCursorAdapter(
+        viewModel.noteText.observe(this, { noteText -> textNoteText.setText(noteText) })
+        viewModel.noteTitle.observe(this, { noteTitle -> textNoteTitle.setText(noteTitle) })
+        viewModel.courseIndex.observe(this,
+            { courseIndex -> spinnerCourses.setSelection(courseIndex) })
+        viewModel.providerCoursesCursor.observe(
             this,
-            android.R.layout.simple_spinner_item, null, arrayOf(CourseInfoEntry.COLUMN_COURSE_TITLE),
+            { cursor -> adapterCourses.changeCursor(cursor) })
+        //viewModel.noteUriPublisher.observe(this, { uri -> id = ContentUris.parseId(uri).toInt() })
+        adapterCourses = SimpleCursorAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            null,
+            arrayOf(CourseInfoEntry.COLUMN_COURSE_TITLE),
             viewArray,
             0
         ) //ArrayAdapter<CourseInfo> =
         //ArrayAdapter(this, android.R.layout.simple_spinner_item, courses)
         adapterCourses.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item)
         spinnerCourses.adapter = adapterCourses
-        loadCourseData()
+        viewModel.loadCourseData()
+
         if (viewModel.isNewlyCreated && savedInstanceState !== null) { //being equal to null implies that the activity was created for the first time, when that is not the case simply
             //restore viewModel state from Bundle
             //This is an overkill as when it is destroyed onConfigurationChanges viewModel will already hold the used value
@@ -88,23 +110,44 @@ class NoteActivity:AppCompatActivity(){
         readDisplayStates() //get noteInfo in order to populate the Views
         if (!isNewNote) {
             //loadNoteData()
-            viewModel.loadNoteData() //will load data using LoaderManager class as this activitiy will implement LoaderCallbacks<Cursor>
+            viewModel.loadNoteData()
             //supportLoaderManager
             //loaderManager
-
         }
 
-            saveOriginalNoteValues() //Store backup of original noteInfo values used onCancel()
+        saveOriginalNoteValues() //Store backup of original noteInfo values used onCancel()
+        //registerNoteReminderReceiver()
+    }
 
-
+    /*private fun registerNoteReminderReceiver() {
+        val courseEventsReceiver = NoteReminderReceiver()
+        val intentFilter = IntentFilter(NoteReminderReceiver.ACTION_NOTE_REMINDER_EVENT)
+        registerReceiver(courseEventsReceiver, intentFilter)
+    }
+     */
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        this.intent = intent
     }
 
     private fun loadCourseData() {
         //Loads the Course Titles on Spinner from Database
         //It is needed by viewModel.loadNoteData()
         val db = dbOpenHelper.getReadableDatabase()
-        val courseColumns = arrayOf( CourseInfoEntry.COLUMN_COURSE_ID, CourseInfoEntry.COLUMN_COURSE_TITLE, BaseColumns._ID)
-        val cursor = db.query(CourseInfoEntry.TABLE_NAME, courseColumns, null, null, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE)
+        val courseColumns = arrayOf(
+            CourseInfoEntry.COLUMN_COURSE_ID,
+            CourseInfoEntry.COLUMN_COURSE_TITLE,
+            BaseColumns._ID
+        )
+        val cursor = db.query(
+            CourseInfoEntry.TABLE_NAME,
+            courseColumns,
+            null,
+            null,
+            null,
+            null,
+            CourseInfoEntry.COLUMN_COURSE_TITLE
+        )
         adapterCourses.changeCursor(cursor)
         viewModel.coursesCursor = cursor
     }
@@ -167,11 +210,9 @@ class NoteActivity:AppCompatActivity(){
         val noteText = noteCursor?.getString(noteTextPos)
 
 
-
-
         //This time, course is obtained from the corresponding id that was read for this note from the database
         // val courses: List<CourseInfo> = DataManager.instance!!.courses
-           //val course = courseId?.let { DataManager.instance?.getCourse(it) }
+        //val course = courseId?.let { DataManager.instance?.getCourse(it) }
 
         // .. and its index obtained with respect Data binding List of RecyclerView using it
         //val courseIndex = courses.indexOf(noteInfo?.course)
@@ -199,9 +240,9 @@ class NoteActivity:AppCompatActivity(){
         var courseRowIndex = 0
         var isFound = false
         var more = cursor.moveToFirst()
-        while (more){
+        while (more) {
             val cursorCourseId = cursor.getString(currentIdPos)
-            courseId?.let {if (it.equals(cursorCourseId))isFound = true }
+            courseId?.let { if (it.equals(cursorCourseId)) isFound = true }
 
             if (isFound)
                 break
@@ -209,7 +250,7 @@ class NoteActivity:AppCompatActivity(){
                 courseRowIndex++
             more = cursor.moveToNext()
         }
-            return courseRowIndex
+        return courseRowIndex
     }
 
 
@@ -219,18 +260,19 @@ class NoteActivity:AppCompatActivity(){
             if (isNewNote) {
                 DataManager.instance?.removeNote(notePosition)
                 val selection = BaseColumns._ID + " =?"
-                dbOpenHelper
-                deleteNodeFromDatabase()
+                //deleteNodeFromDatabase()
+                //viewModel.deleteNote()
             } else {
                 storePreviousNoteValues()
             }
         } else
             saveNote()
     }
-    private fun deleteNodeFromDatabase(){
+
+    private fun deleteNodeFromDatabase() {
+
         val selection = BaseColumns._ID + " =?"
-        dbOpenHelper
-        val  selectionArgs = arrayOf(id.toString())
+        val selectionArgs = arrayOf(id.toString())
         val db = dbOpenHelper.writableDatabase
         db.delete(NoteInfoEntry.TABLE_NAME, selection, selectionArgs)
 
@@ -239,12 +281,12 @@ class NoteActivity:AppCompatActivity(){
             @Override
             protected doInBackground(params:Object){
 
-        }
-
-        }
+            }
+       }
         db.delete(NoteInfoEntry.TABLE_NAME, selection, selectionArgs)
         */
     }
+
     private fun storePreviousNoteValues() {
         //Save the actual data that lays behind courtains nbut keep showing new values on display
         //as it will update them back from Spinner and EditText when saveNote()
@@ -269,11 +311,11 @@ class NoteActivity:AppCompatActivity(){
         saveNoteToDatabase(courseId, noteTitle, noteText)
     }
 
-    private fun selectedCourseId(): String{
+    private fun selectedCourseId(): String {
         val selectedPosition = spinnerCourses.selectedItemPosition
         val cursor = adapterCourses.cursor
         cursor.moveToPosition(selectedPosition) //Cursor does not need to know about the values themselves but as the selectedItemPosition and its associated
-                                                //value on the cursor suffices
+        //value on the cursor suffices
         val courseIdPos = cursor.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_ID)
         return cursor.getString(courseIdPos)
     }
@@ -283,36 +325,37 @@ class NoteActivity:AppCompatActivity(){
         viewModel.isNewlyCreated = false
     }
 
-    private fun saveNoteToDatabase(courseId: String?, noteTitle: String?, noteText:String?){
+    private fun saveNoteToDatabase(courseId: String?, noteTitle: String?, noteText: String?) {
 
-            val db = dbOpenHelper.writableDatabase
+        val db = dbOpenHelper.writableDatabase
 
-            /*
-            val courseId = "android_intents"
-            val titleStart = "%Delegating%"
-            */
-            /*
-            val selection =
-                "${NoteInfoEntry.COLUMN_COURSE_ID} = ? AND ${NoteInfoEntry.COLUMN_NOTE_TITLE} LIKE ?"
-            val selectionArgs = arrayOf(courseId, titleStart)
-            */
+        /*
+        val courseId = "android_intents"
+        val titleStart = "%Delegating%"
+        */
+        /*
+        val selection =
+            "${NoteInfoEntry.COLUMN_COURSE_ID} = ? AND ${NoteInfoEntry.COLUMN_NOTE_TITLE} LIKE ?"
+        val selectionArgs = arrayOf(courseId, titleStart)
+        */
 
-            val selection = "${BaseColumns._ID} = ?"
-            val selectionArgs = arrayOf(Integer.toString(id))
+        val selection = "${BaseColumns._ID} = ?"
+        val selectionArgs = arrayOf(Integer.toString(id))
 
 
-            val values = ContentValues()
-            values.put(NoteInfoEntry.COLUMN_NOTE_TITLE,noteTitle)
-                    values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, noteText)
-                    values.put(NoteInfoEntry.COLUMN_COURSE_ID, courseId)
-            db.update(NoteInfoEntry.TABLE_NAME, values, selection, selectionArgs)
-        }
+        val values = ContentValues()
+        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE, noteTitle)
+        values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, noteText)
+        values.put(NoteInfoEntry.COLUMN_COURSE_ID, courseId)
+        db.update(NoteInfoEntry.TABLE_NAME, values, selection, selectionArgs)
+    }
 
     private fun readDisplayStates() {
         val intent = getIntent()
         //val position = intent.getIntExtra(NOTE_POSITION, POSITION_NOT_SET)
         id = intent.getIntExtra(NOTE_ID, ID_NOT_SET)
         viewModel.noteId = id
+        viewModel.noteUri = ContentUris.withAppendedId(Notes.CONTENT_URI, id.toLong())
         isNewNote = id == ID_NOT_SET
         //App Step - Create a new node
         if (isNewNote) {
@@ -344,19 +387,30 @@ class NoteActivity:AppCompatActivity(){
         notePosition = dm!!.createNewNote()
         noteInfo = dm?.notes?.get(notePosition)
         */
+        /* Replaced by ContetProvider insertion
         val values = ContentValues()
-        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE,"")
+        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE, "")
         values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, "")
         values.put(NoteInfoEntry.COLUMN_COURSE_ID, "")
         val db = dbOpenHelper.writableDatabase
         id = db.insert(NoteInfoEntry.TABLE_NAME, null, values).toInt()
+        */
+
+        viewModel.insertNote()
     }
+
+    private class CreateNewNoteWithAsyncTask() {
+
+
+    }
+
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_note, menu)
         return true
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
         val id = item.itemId
@@ -367,12 +421,169 @@ class NoteActivity:AppCompatActivity(){
             }
             R.id.action_cancel -> {
                 shouldFinish = true
+                //deleteNoromDatabase()
+                viewModel.deleteNote()
                 finish()
+            }
+            R.id.action_notify -> {
+                //showFutureReminderNotification()
+                showReminderNotification()
+                return true
+
+            }
+            R.id.action_note_backup -> {
+                //noteBackup()
+                workManagerNoteBackup()
+                return true
+            }
+            R.id.action_note_upload -> {
+                scheduleNoteUpload()
+                return true
             }
         }
         return false
+    }
+
+    private fun scheduleNoteUpload() {
+        val componentName = ComponentName(this, NoteUploaderJobService::class.java)
+        val bundle = PersistableBundle()
+        bundle.putString(NoteUploaderJobService.EXTRA_DATA_URI, Notes.CONTENT_URI.toString())
+        val jobInfo = JobInfo.Builder(NOTE_UPLOADER_JOB_ID, componentName)
+            //.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .setExtras(bundle)
+            .build()
+
+        val scheduler = getSystemService(JOB_SCHEDULER_SERVICE) as JobScheduler
+        scheduler.schedule(jobInfo)
+    }
+
+    private fun noteBackup() {
+        //NoteBackup.doBackup(this, ALL_COURSES)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun workManagerNoteBackup() {
+        //val course = "android_async"
+        /*val intent:Intent? = Intent(this, NoteBackupService::class.java)
+        intent?.putExtra( EXTRA_COURSE_ID, ALL_COURSES)*/
+        // Create the Constraints
+        val constraints = Constraints.Builder()
+            .build()
+
+// Define the input
+
+        val cpData = workDataOf(EXTRA_COURSE_ID to ALL_COURSES)
+
+// Bring it all together by creating the WorkRequest; this also sets the back off criteria
+        val backupNoteRequest = OneTimeWorkRequestBuilder<NoteBackupService>()
+            .setInputData(cpData)
+            .setConstraints(constraints)
+            .setBackoffCriteria(
+                BackoffPolicy.LINEAR,
+                OneTimeWorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
+            .build()
+        WorkManager.getInstance(applicationContext).enqueue(backupNoteRequest)
 
     }
+
+    private fun showFutureReminderNotification() {
+        val noteTitle = binding.textNoteTitle.text.toString()
+        val noteText = binding.textNodeText.text.toString()
+        val noteId = viewModel.noteId
+        val intent = Intent(
+            this, NoteReminderReceiver::class.java
+        )
+        intent.action = NoteReminderReceiver.ACTION_NOTE_REMINDER_EVENT
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_TITLE, noteTitle)
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_TEXT, noteText)
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_ID, noteId)
+
+        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+        val currentTimeInMilliseconds = SystemClock.elapsedRealtime()
+        //val ONE_HOUR = 60 * 60 * 1000
+        //val TEN_SECONDS = 10 * 1000
+        val ONE_SECOND = 1000
+        val alarmTime = currentTimeInMilliseconds + ONE_SECOND
+        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, alarmTime, pendingIntent)
+    }
+
+    private fun showReminderNotification() {
+
+        val title = binding.textNoteTitle.text.toString()
+        val text = binding.textNodeText.text.toString()
+        var builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_note_reminder)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setDefaults(Notification.DEFAULT_ALL)
+            .setTicker("This is the review note for ${title}")
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .setBigContentTitle(title + title + title)
+                    .bigText(text + text + text)
+                    .setSummaryText("Review Notes")
+            )
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = getString(R.string.chanel_name)
+            val descriptionText = getString(R.string.channel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel =
+                NotificationChannel(getString(R.string.channel_id), name, importance).apply {
+                    description = descriptionText
+                }
+            // Register the channel with the system
+            val notificationManager: NotificationManager =
+                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        //Create an explicit intent for the activity
+        val pendingIntent = createPendingIntent()
+        builder.setContentIntent(pendingIntent)
+            .setChannelId(getString(R.string.channel_id))
+            .setAutoCancel(true)
+
+
+        builder = addAction(builder)
+        with(NotificationManagerCompat.from(this)) {
+            // notificationId is a unique int for each notification that you must define
+            notify(0, builder.build())
+        }
+    }
+
+    private fun createPendingIntent(): PendingIntent {
+        //don't use intent activity atributte as it will be set to null once the activity is destroyed
+        val intent = Intent(applicationContext, NoteActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val id = viewModel.noteId
+        intent.putExtra(NOTE_ID, id)
+        val pendingIntent: PendingIntent =
+            PendingIntent.getActivity(this, 0, intent, FLAG_UPDATE_CURRENT or FLAG_MUTABLE)
+        return pendingIntent
+    }
+
+    private fun addAction(builder: NotificationCompat.Builder): NotificationCompat.Builder {
+        builder.addAction(
+            0,
+            "View all notes",
+            PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, NavigationDrawerActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+                },
+                FLAG_IMMUTABLE
+            )
+        )
+        return builder
+    }
+
 
     private fun sendMail() {
         var course = spinnerCourses.selectedItem as CourseInfo
@@ -390,5 +601,6 @@ class NoteActivity:AppCompatActivity(){
         const val NOTE_INFO = "NOTE_INFO"
         const val NOTE_ID = "NOTE_POSITION"
         const val ID_NOT_SET = -1
+        const val NOTE_UPLOADER_JOB_ID = 1
     }
 }

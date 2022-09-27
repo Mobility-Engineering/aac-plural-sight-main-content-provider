@@ -72,13 +72,13 @@ class CourseInfo : Parcelable {
         dest.writeTypedList(modules)
     }
 
-    companion object CREATOR: Parcelable.Creator<CourseInfo?> {
-            override fun createFromParcel(source: Parcel): CourseInfo? {
-                return CourseInfo(source)
-            }
+    companion object CREATOR : Parcelable.Creator<CourseInfo?> {
+        override fun createFromParcel(source: Parcel): CourseInfo? {
+            return CourseInfo(source)
+        }
 
-            override fun newArray(size: Int): Array<CourseInfo?> {
-                return arrayOfNulls(size)
-            }
+        override fun newArray(size: Int): Array<CourseInfo?> {
+            return arrayOfNulls(size)
         }
     }
+}

@@ -12,6 +12,7 @@
     <string name="take_photo">Take photo</string>
     <string name="cancel">Cancel</string>
     <string name="send_email">Send email</string>
+    <string name="notify">Notify</string>
     <string name="title_activity_navigation_drawer">NavigationDrawerActivity</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -25,4 +26,8 @@
     <string name="menu_slideshow">Slideshow</string>
     <string name="button_to_add_new_note">Button to add new note</string>
     <string name="button_to_add_a_note">Button to add a note</string>
+    <string name="channel_id">Principal canal de notas</string>
+    <string name="chanel_name">Principales Notes</string>
+    <string name="channel_description">Mostrara las principales notas al usuario</string>
+
 </resources>

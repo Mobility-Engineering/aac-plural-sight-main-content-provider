@@ -12,6 +12,7 @@ import android.view.MenuItem
 import android.widget.ArrayAdapter
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationCompat
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.NavType
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -31,16 +32,16 @@ class NoteListActivity : AppCompatActivity() {
         setContentView(binding.root)
         val fab = binding.floatingActionButton
         super.onCreate(savedInstanceState)
-      initializeDisplayContent()
-        fab.setOnClickListener {  view ->
-            val intent = Intent (this, NoteActivity::class.java)
-                startActivity(intent)
+        initializeDisplayContent()
+        fab.setOnClickListener { view ->
+            val intent = Intent(this, NoteActivity::class.java)
+            startActivity(intent)
 
         }
 
     }
 
-    fun initializeDisplayContent(){
+    fun initializeDisplayContent() {
         /*
         var listNotes = binding.listNotes
         var notes = DataManager.instance!!.notes
@@ -58,14 +59,13 @@ class NoteListActivity : AppCompatActivity() {
         val notesLayoutManager = LinearLayoutManager(this)
         recyclerNotes.layoutManager = notesLayoutManager
         val notes = DataManager.instance?.notes
-        noteRecyclerAdapter = notes?.let{ NoteRecyclerAdapter(this, it)}
+        noteRecyclerAdapter = notes?.let { NoteRecyclerAdapter(this, it) }
         recyclerNotes.adapter = noteRecyclerAdapter
 
-         }
+    }
 
 
     override fun onResume() {
-           noteRecyclerAdapter?.notifyDataSetChanged()
         super.onResume()
     }
 
@@ -76,11 +76,11 @@ class NoteListActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         var id = item.itemId
-        when (id){
-                R.id.action_take_photo -> {
-                    intent = Intent(this, CameraActivity::class.java)
-                    startActivity(intent)
-             }
+        when (id) {
+            R.id.action_take_photo -> {
+                intent = Intent(this, CameraActivity::class.java)
+                startActivity(intent)
+            }
             else -> {}
         }
         return super.onOptionsItemSelected(item)

@@ -21,13 +21,13 @@
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
 
-    <string name="menu_home">HomeRun</string>
-    <string name="menu_gallery">Gallery</string>
+    <string name="menu_home">Notes</string>
+    <string name="menu_gallery">Courses</string>
     <string name="menu_slideshow">Slideshow</string>
     <string name="button_to_add_new_note">Button to add new note</string>
     <string name="button_to_add_a_note">Button to add a note</string>
-    <string name="channel_id">Principal canal de notas</string>
-    <string name="chanel_name">Principales Notes</string>
-    <string name="channel_description">Mostrara las principales notas al usuario</string>
+    <string name="channel_id">Main note channel</string>
+    <string name="chanel_name">Main notes</string>
+    <string name="channel_description">Main notes for the user</string>
 
 </resources>

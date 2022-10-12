@@ -6,6 +6,7 @@ import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.content.*
 import android.database.Cursor
+import android.database.CursorWrapper
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -37,7 +38,7 @@ import com.dexcom.sdk.aac_fullcontentapp.service.NoteUploaderJobService
 import com.dexcom.sdk.aac_fullcontentapp.ui.ModuleStatusView
 import java.util.concurrent.TimeUnit
 
-
+@RequiresApi(Build.VERSION_CODES.O)
 class NoteActivity : AppCompatActivity() {
     private val CHANNEL_ID: String = "2"
     private var noteCursor: Cursor? = null
@@ -110,7 +111,7 @@ class NoteActivity : AppCompatActivity() {
 
 
         textNoteTitle = binding.textNoteTitle
-        textNoteText = binding.textNodeText
+        textNoteText = binding.textNoteText
 
         readDisplayStates() //get noteInfo in order to populate the Views
         if (!isNewNote) {
@@ -434,8 +435,7 @@ class NoteActivity : AppCompatActivity() {
             }
             R.id.action_cancel -> {
                 shouldFinish = true
-                //deleteNoromDatabase()
-                viewModel.deleteNote()
+                //viewModel.deleteNote()
                 finish()
             }
             R.id.action_notify -> {
@@ -503,7 +503,7 @@ class NoteActivity : AppCompatActivity() {
 
     private fun showFutureReminderNotification() {
         val noteTitle = binding.textNoteTitle.text.toString()
-        val noteText = binding.textNodeText.text.toString()
+        val noteText = binding.textNoteText.text.toString()
         val noteId = viewModel.noteId
         val intent = Intent(
             this, NoteReminderReceiver::class.java
@@ -526,7 +526,7 @@ class NoteActivity : AppCompatActivity() {
     private fun showReminderNotification() {
 
         val title = binding.textNoteTitle.text.toString()
-        val text = binding.textNodeText.text.toString()
+        val text = binding.textNoteText.text.toString()
         var builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_note_reminder)
             .setContentTitle(title)
@@ -599,10 +599,12 @@ class NoteActivity : AppCompatActivity() {
 
 
     private fun sendMail() {
-        var course = spinnerCourses.selectedItem as CourseInfo
+        var courseCursorWrapper = spinnerCourses.selectedItem as CursorWrapper
+        val columnIndex = courseCursorWrapper.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_TITLE)
+        val title  = courseCursorWrapper.getString(columnIndex)
         var subject = textNoteTitle.text.toString()
         var text =
-            "Checkout what I learned in the Pluralsight course \"" + course.title + "\"\n" + textNoteText.text.toString()
+            "Checkout what I learned in the Pluralsight course \"" + title + "\":\n" + textNoteText.text.toString()
         val intent = Intent(Intent.ACTION_SEND)
         intent.setType("message/rfc2822")
         intent.putExtra(Intent.EXTRA_SUBJECT, subject)

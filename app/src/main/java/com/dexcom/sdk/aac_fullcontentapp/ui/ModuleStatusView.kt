@@ -195,7 +195,7 @@ class ModuleStatusView : View {
 
         desiredWidth = (moduleStatus.size * (shapeSize + spacing)) - spacing
         desiredWidth += getPaddingLeft() + getPaddingRight()
-
+        //moduleStatus.size is substracted by 1 so that when it is equal to the number of maxHorizontalModules
         val rows = (moduleStatus.size - 1) / maxHorizontalModules + 1
         desiredHeight = rows * (shapeSize + spacing) - spacing
         desiredHeight += getPaddingTop() + getPaddingBottom()

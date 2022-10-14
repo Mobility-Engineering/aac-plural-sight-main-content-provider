@@ -20,9 +20,11 @@ import com.dexcom.sdk.aac_fullcontentapp.databinding.FragmentHomeBinding
 
 class GalleryFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
+
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
+
     //private var noteRecyclerAdapter: NoteRecyclerAdapter? = null
     private var courseRecyclerAdapter: CourseRecyclerAdapter? = null
     private lateinit var adapterNotes: ArrayAdapter<NoteInfo>
@@ -43,9 +45,6 @@ class GalleryFragment : Fragment() {
 
         super.onResume()
     }
-
-
-
 
 
     private fun initializeDisplayContent() {
@@ -69,10 +68,9 @@ class GalleryFragment : Fragment() {
         val courseLayoutManager = GridLayoutManager(context, 2)
         recyclerCourses.layoutManager = courseLayoutManager
         val courses = DataManager.instance?.courses
-        courseRecyclerAdapter = courses?.let{ CourseRecyclerAdapter(context, it) }
+        courseRecyclerAdapter = courses?.let { CourseRecyclerAdapter(context, it) }
         recyclerCourses.adapter = courseRecyclerAdapter
     }
-
 
 
     override fun onDestroyView() {

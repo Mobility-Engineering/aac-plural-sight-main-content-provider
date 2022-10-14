@@ -7,13 +7,23 @@
     android:title="@string/send_email"
     />
     <item
-        android:id="@+id/action_take_photo"
-        android:icon="@drawable/ic_baseline_photo_camera_24"
-        android:title="@string/take_photo"
-        />
-    <item
         android:id="@+id/action_cancel"
         android:icon="@drawable/ic_baseline_cancel_24"
         android:title="@string/cancel"
+        />
+    <item
+        android:id="@+id/action_notify"
+        android:icon="@drawable/ic_stat_note_reminder"
+        android:title="@string/notify"
+        />
+    <item
+        android:id="@+id/action_note_backup"
+        android:icon="@drawable/ic_stat_note_reminder"
+        android:title="Backup"
+        />
+    <item
+        android:id="@+id/action_note_upload"
+        android:icon="@drawable/ic_stat_note_reminder"
+        android:title="Upload"
         />
 </menu>

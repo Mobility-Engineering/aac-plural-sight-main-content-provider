@@ -9,6 +9,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AAC_FullContentApp">
+
+        <provider
+            android:name=".provider.NoteKeeperContentProvider"
+            android:authorities="com.dexcom.sdk.aac_fullcontentapp.provider.provider"
+            android:enabled="true"
+            android:exported="true" />
+
         <activity
             android:name=".NavigationDrawerActivity"
             android:exported="true"
@@ -19,18 +26,27 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            </activity>
+        </activity>
         <activity
             android:name=".CameraActivity"
             android:exported="false" />
         <activity
             android:name=".NoteListActivity"
-            android:exported="true">
-
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".NoteActivity"
-            android:exported="true"/>
+            android:exported="true" />
+
+        <service
+            android:name=".service.NoteUploaderJobService"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE"></service>
+
+        <receiver
+            android:name=".receiver.NoteReminderReceiver"
+            android:enabled="true"
+            android:exported="true"></receiver>
     </application>
 
 </manifest>

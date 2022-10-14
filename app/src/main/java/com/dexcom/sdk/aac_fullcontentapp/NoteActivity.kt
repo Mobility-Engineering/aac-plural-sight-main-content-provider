@@ -79,8 +79,6 @@ class NoteActivity : AppCompatActivity() {
         val viewArray: IntArray? = IntArray(1) { i -> android.R.id.text1 }
         binding.spinnerCourses.also { spinnerCourses = it }
         val courses: List<CourseInfo> = DataManager.instance!!.courses
-
-
         viewModel.noteText.observe(this, { noteText -> textNoteText.setText(noteText) })
         viewModel.noteTitle.observe(this, { noteTitle -> textNoteTitle.setText(noteTitle) })
         viewModel.courseIndex.observe(this,
@@ -354,7 +352,8 @@ class NoteActivity : AppCompatActivity() {
         */
 
         val selection = "${BaseColumns._ID} = ?"
-        val selectionArgs = arrayOf(Integer.toString(id))
+        //val selectionArgs = arrayOf(Integer.toString(id)) use when id is generated locally on createNewNode()
+        val selectionArgs = arrayOf(Integer.toString(viewModel.noteId))
 
 
         val values = ContentValues()

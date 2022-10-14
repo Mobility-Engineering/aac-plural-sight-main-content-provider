@@ -202,7 +202,9 @@ class NoteActivityViewModel(application: Application) : AndroidViewModel(applica
         values.put(Notes.COLUMN_NOTE_TITLE, "")
         values.put(Notes.COLUMN_NOTE_TEXT, "")
         noteUri = providerClient?.insert(Notes.CONTENT_URI, values)!!
-        //noteUriPublisher.value = noteUri
+        noteId = ContentUris.parseId(noteUri).toInt()
+        //noteId = ContentUris.parseId(noteUri) as Int
+    //noteUriPublisher.value = noteUri
         //now when the note gets created generate the id as previously
     }
     fun deleteNote(){
